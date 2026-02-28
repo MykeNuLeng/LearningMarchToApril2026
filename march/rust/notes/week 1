@@ -2,3 +2,68 @@
 
 ## Ownership
 
+Every value has exactly one owning binding at a time.
+Ownership is about who is responsible for freeing memory.
+When owner $ \nu $ goes out of scope, $ drop(\nu) $ is automatically called.
+
+## Moves
+
+A move is a change in ownership.
+
+```Rust
+let a = String::from("Hello");
+let b = a;
+```
+
+- b now owns that string
+- a is now invalid
+
+### Why `String` moves but `i32` Copies
+
+`i32` does not have a pointer, and is stored on the stack, not heap. So duplication is not an issue.
+
+Internally `Strings` behave like this:
+
+```Rust
+struct String {
+    pointer: *mut u8,
+    len: usize,
+    capacity: usize
+}
+```
+
+So if you copy it, you'd end up with two structs pointing to the same place in the heap.
+
+If I want a copy of string a, where both are valid, I'd have to do this:
+
+```Rust
+let b = a.clone();
+```
+
+Clone allocates new heap memory.
+
+## Stack vs Heap
+
+Stack values:
+
+- Known size at compile time
+- Copied easily
+
+Heap values:
+
+- Dynamically allocated
+- Owned by exactly 1 thing
+
+## From Official [Documentation](https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html)
+
+Ownership is unique to Rust, and it's how it interacts with memory. I'll be able to tell if something went wrong quickly, as the code just wont compile.
+
+### Stack and Heap
+
+Think of the stack like a stack of plates, if I need a plate, I'd grab one from the top. Taking it from the middle would be weird / inefficient. You also know exactly what size the plates are, otherwise they wouldn't stack well. Adding data is called pushing onto the stack and removing it is called popping off the stack. If you don't know what size data you're dealing with, you need to use the heap instead.
+
+When you put something into the heap, the memory allocator will check where is room, and then put it there, and note down where it is. This is a pointer, which it'll give you, so you can easily find it if you want to get rid of it. This is called allocating on the heap, or just allocating. Because the pointer is a known fixed size, you can then store that on the stack.
+
+Think of going to a restaurant. The waiter will ask how many in your group, and will then find a table that fits everyone. Then if someone arrives later, they can give the directions to your table.
+
+Pushing to the stack will always be faster than allocating to the heap, because you just dump something on the top of the stack, no need to spend time figuring out where.
