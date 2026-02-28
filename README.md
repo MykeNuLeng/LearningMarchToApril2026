@@ -10,10 +10,10 @@
 
 ## March
 
-Here is the [curriculum]((/march/plan.md)) for the learning I need to do.
+Here is the [curriculum](march/plan.md) for the learning I need to do.
 
 | Subject Area | Planned Learning | Project | Retro |
 | :--: | :--: | :--: | :--: |
-| iOS  | [iOS Plan](/march/ios/ios.md.md) | | |
-| Rust 🦀 | [Rust Plan](/march/rust/rust.md.md) | | |
-| ML ∬ | [ML Plan](/march/ml/ml.md) | | |
+| iOS  | [iOS Plan](march/ios/ios.md) | | |
+| Rust 🦀 | [Rust Plan](march/rust/rust.md) | | |
+| ML ∬ | [ML Plan](march/ml/ml.md) | | |
