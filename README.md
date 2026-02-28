@@ -78,7 +78,7 @@ Combine:
 
 Rules:
 - No ML frameworks
-- Optional: NumbPy for convenience only after manual implementation
+- Optional: `NumbPy` for convenience only after manual implementation
 ## Projects
 ### iOS
 Profile Feature Module
@@ -92,7 +92,7 @@ Include:
 - Networking layer
 - Persistence layer
 - Tests
-- README explaining all architecture decisions
+- `README` explaining all architecture decisions
 
 Deliverable
 > A repository that proves I can design and ship a complete feature independently
@@ -107,13 +107,13 @@ Features:
 - Error handling
 
 Deliverable
-> README explaining ownership, borrowing, lifetimes, and thread safety in my implementation
+> `README` explaining ownership, borrowing, lifetimes, and thread safety in my implementation
 
 ### ML maths
 Linear Regression from Scratch
 
 Features:
-- Derivation in README
+- Derivation in `README`
 - Code implementing gradient descent
 - Visualization of convergence
 - Explanation of learning rate
@@ -121,3 +121,15 @@ Features:
 Deliverable
 > I can derive and explain gradient descent without Googling
 
+## Checkpoints
+By the end of March, I want to be able to say that I have completed these
+### iOS
+Design and implement a feature independently, justify architectural decisions, and debug memory and state issues without tutorial guidance.
+### Rust
+- Explain why borrow checker errors happen
+- Explain difference between move, borrow, and clone
+- Explain how `Arc<Mutex<T>>` ensures safety
+### ML
+- Derive gradient descent update rule
+- Explain why it converges
+- Explain role of learning rate
