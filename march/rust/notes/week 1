@@ -141,3 +141,58 @@ let s2 = s1;
 | ptr | points to the location of the string on the heap |
 | len | how much space, in bytes the string is taking up |
 | capacity | how much space we received from the allocator |
+
+so when we assign `s1` to `s2`, the string data is copied, meaning we copy the pointer, length and capacity straight onto the stack... Not the heap.
+
+now, `s2` will still have a pointer to the location in the heap, and when it goes out of scope, the drop function will still be called. which is an issue if you call `s1` or if `s1` later goes out of scope and tries to delete something that isn't there. you get a `double free` error.
+
+However Rust has a way around this, as soon as `s1` is copied to `s2`, it is no longer valid
+
+```Rust
+let s1 = String::from("hello");
+let s2 = s1;
+
+println!("{s1}, world!");
+```
+
+You will get an error because Rust prevents you from using the invalid reference.
+copying `s1` to `s2` is known as a `move`.
+
+### Scope and assignment
+
+```Rust
+let mut s = String::from("hello");
+s = String::from("ahoy");
+
+println!("{s}, world!");
+```
+
+after we reassign `s` to hold a different value, nothing is pointing to the area holding `hello` anymore, so it's dropped.
+
+### Variables and data with clone
+
+```Rust
+let s1 = String::from("hello");
+let s2 = s1.clone();
+
+println!("s1 = {s1}, s2 = {s2}");
+```
+
+Here the heap data does get copied. calls using `clone` are generally expensive.
+
+### Copy trait
+
+You can copy integers easily because they are stored on the stack. In fact, calling `.copy` on an integer will be the same as just `let x = y`. 
+
+Rust has a special annotation called the `Copy` trait. This is placed on types that are stored on the stack. If a type uses this trait, variables that use it do not `move`, but are trivially copied, so they're still valid after reassignment.
+
+Rust will not let you assign the `Copy` trait to something that has the `Drop` trait.
+
+Here are some types that implement `Copy`:
+
+- All integer types, like `u32`
+- Booleans
+- Floats, like `f64`
+- Character type, `char`
+- Tuples, if they only contain types that also `Copy`
+
