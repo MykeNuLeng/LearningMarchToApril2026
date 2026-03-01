@@ -67,3 +67,77 @@ When you put something into the heap, the memory allocator will check where is r
 Think of going to a restaurant. The waiter will ask how many in your group, and will then find a table that fits everyone. Then if someone arrives later, they can give the directions to your table.
 
 Pushing to the stack will always be faster than allocating to the heap, because you just dump something on the top of the stack, no need to spend time figuring out where.
+
+Contemparay processors are faster if they don't have to jump around the heap lots - with the analogy of the waiter, it's faster if they take all the orders from one table, rather than going between randomly. Also, it is a lot faster if all the data is close together, as it is on the stack, as opposed to the heap.
+
+Ownership makes sure that:
+
+- You keep track of what bits of code are using what data on the heap
+- Minimizes the amount of duplicate data on the heap
+- cleans up unused data
+
+Rules!
+
+- Each value in Rust has an `owner`
+- There can only be one owner at a time - no timeshares here
+- When the owner goes out of scope, the value is dropped
+
+### Variable Scope
+
+A `scope` is the range within a program for which an item is valid.
+
+```Rust
+let s = "hello";
+```
+
+The variable s refers to a string literal, where the value, "hello", is hard coded into the text of our program. This variable is valid from the point at which is't declared, until the end of the current scope.
+
+### The String Type
+
+you can create a String from a string literal using the from function
+
+```Rust
+let s = String::from("hello");
+```
+
+The `::` operater allows us to namespace this particular `from` function under the `String` type rather than using some sort of name like `string_from`.
+
+This kind of string can be mutated.
+
+```Rust
+let mut s = String::from("hello");
+s.push_str(", world!"); // push_str appends a string literal to a string
+println!("{s}"); // this will print `hello, world!`
+```
+
+### Memory and allocation
+
+String literal - we know the contents when we compile - it's hard coded.
+This is why string literals are fast and efficient - but these only come from the literal's immutability.
+
+We can't put a random blob of memory for strings where we don't know how much space they will need, and even worse, might change how much they need as well.
+
+We can however, reserve some space on the heap - unknown at compile time, to hold the contents.
+
+- Memory must be requested at runtime
+- We need a way to give it back when we're done
+
+The first part is done when we call `String::from`. The second happens when our variable holding the string goes out of scope. Rust will call the function `drop`.
+
+```Rust
+let x = 5;
+let y = x;
+```
+
+This binds the value of `5` to `x`; then makes a copy of the value in `x` and binds it to `y`. This is fine as integers have a fixed size, and are stored on the stack.
+
+```Rust
+let s1 = String::from("hello");
+let s2 = s1;
+```
+
+| string contents | purpose |
+| :--: | :--: |
+| ptr | points to the location of the string on the heap |
+| len | how much space, in bytes the string is taking up |
+| capacity | how much space we received from the allocator |
