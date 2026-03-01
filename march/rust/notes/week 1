@@ -220,3 +220,13 @@ fn main() {
     let s3 = takes_and_gives_back(s2); // takes_and... takes ownership from s2, then gives ownership of its return value to s3
 } // at this point s1 and s3 are out of scope and dropped. s2 also goes out of scope, but it was moved, so nothing happens.
 ```
+
+## The [Slice Type](https://doc.rust-lang.org/book/ch04-03-slices.html)
+
+Slices let you reference a contiguous sequence of elements in a collection. It's a type of reference so it doesn't have ownership.
+
+Lets say we want a function that either returns a whole string input, or everything in the string up until the first space.
+
+```Rust
+fn first_word(s: &String) -> ?
+```
