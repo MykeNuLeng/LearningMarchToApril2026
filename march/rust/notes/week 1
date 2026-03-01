@@ -196,3 +196,27 @@ Here are some types that implement `Copy`:
 - Character type, `char`
 - Tuples, if they only contain types that also `Copy`
 
+### Ownership and Functions
+
+Passing a variable to a function will move or copy. just as assignment does.
+
+```Rust
+fun main() {
+    let s = String::from("hello");
+    takes_ownership(s);
+
+    let x = 5;
+    makes_copy(x);
+} // at this point x and s go out of scope. however ownership was moved for s, so nothing happens there. and because x is an int, it's not dropped either.
+```
+
+If we tried to use `s` after `take_ownership`, we'd get a big ol compile-time error.
+
+```Rust
+fn main() {
+    let s1 = gives_ownership(); // s1 gets ownership from return value
+
+    let s2 = String::from("hello"); // s2 gets ownership of hello
+    let s3 = takes_and_gives_back(s2); // takes_and... takes ownership from s2, then gives ownership of its return value to s3
+} // at this point s1 and s3 are out of scope and dropped. s2 also goes out of scope, but it was moved, so nothing happens.
+```
