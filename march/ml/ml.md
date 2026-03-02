@@ -11,7 +11,9 @@ Study:
 - Vectors
 - Dot product
 - Matrix multiplication
+
 Implement in Python:
+
 - Basic vector ops from scratch (don't use numpy aha)
 
 ### Week 2 - Cost Function
