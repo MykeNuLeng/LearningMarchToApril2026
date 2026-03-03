@@ -1,0 +1,232 @@
+# Week 1 Notes
+
+## Ownership
+
+Every value has exactly one owning binding at a time.
+Ownership is about who is responsible for freeing memory.
+When owner $ \nu $ goes out of scope, $ drop(\nu) $ is automatically called.
+
+## Moves
+
+A move is a change in ownership.
+
+```Rust
+let a = String::from("Hello");
+let b = a;
+```
+
+- b now owns that string
+- a is now invalid
+
+### Why `String` moves but `i32` Copies
+
+`i32` does not have a pointer, and is stored on the stack, not heap. So duplication is not an issue.
+
+Internally `Strings` behave like this:
+
+```Rust
+struct String {
+    pointer: *mut u8,
+    len: usize,
+    capacity: usize
+}
+```
+
+So if you copy it, you'd end up with two structs pointing to the same place in the heap.
+
+If I want a copy of string a, where both are valid, I'd have to do this:
+
+```Rust
+let b = a.clone();
+```
+
+Clone allocates new heap memory.
+
+## Stack vs Heap
+
+Stack values:
+
+- Known size at compile time
+- Copied easily
+
+Heap values:
+
+- Dynamically allocated
+- Owned by exactly 1 thing
+
+## From Official [Documentation](https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html)
+
+Ownership is unique to Rust, and it's how it interacts with memory. I'll be able to tell if something went wrong quickly, as the code just wont compile.
+
+### Stack and Heap
+
+Think of the stack like a stack of plates, if I need a plate, I'd grab one from the top. Taking it from the middle would be weird / inefficient. You also know exactly what size the plates are, otherwise they wouldn't stack well. Adding data is called pushing onto the stack and removing it is called popping off the stack. If you don't know what size data you're dealing with, you need to use the heap instead.
+
+When you put something into the heap, the memory allocator will check where is room, and then put it there, and note down where it is. This is a pointer, which it'll give you, so you can easily find it if you want to get rid of it. This is called allocating on the heap, or just allocating. Because the pointer is a known fixed size, you can then store that on the stack.
+
+Think of going to a restaurant. The waiter will ask how many in your group, and will then find a table that fits everyone. Then if someone arrives later, they can give the directions to your table.
+
+Pushing to the stack will always be faster than allocating to the heap, because you just dump something on the top of the stack, no need to spend time figuring out where.
+
+Contemparay processors are faster if they don't have to jump around the heap lots - with the analogy of the waiter, it's faster if they take all the orders from one table, rather than going between randomly. Also, it is a lot faster if all the data is close together, as it is on the stack, as opposed to the heap.
+
+Ownership makes sure that:
+
+- You keep track of what bits of code are using what data on the heap
+- Minimizes the amount of duplicate data on the heap
+- cleans up unused data
+
+Rules!
+
+- Each value in Rust has an `owner`
+- There can only be one owner at a time - no timeshares here
+- When the owner goes out of scope, the value is dropped
+
+### Variable Scope
+
+A `scope` is the range within a program for which an item is valid.
+
+```Rust
+let s = "hello";
+```
+
+The variable s refers to a string literal, where the value, "hello", is hard coded into the text of our program. This variable is valid from the point at which is't declared, until the end of the current scope.
+
+### The String Type
+
+you can create a String from a string literal using the from function
+
+```Rust
+let s = String::from("hello");
+```
+
+The `::` operater allows us to namespace this particular `from` function under the `String` type rather than using some sort of name like `string_from`.
+
+This kind of string can be mutated.
+
+```Rust
+let mut s = String::from("hello");
+s.push_str(", world!"); // push_str appends a string literal to a string
+println!("{s}"); // this will print `hello, world!`
+```
+
+### Memory and allocation
+
+String literal - we know the contents when we compile - it's hard coded.
+This is why string literals are fast and efficient - but these only come from the literal's immutability.
+
+We can't put a random blob of memory for strings where we don't know how much space they will need, and even worse, might change how much they need as well.
+
+We can however, reserve some space on the heap - unknown at compile time, to hold the contents.
+
+- Memory must be requested at runtime
+- We need a way to give it back when we're done
+
+The first part is done when we call `String::from`. The second happens when our variable holding the string goes out of scope. Rust will call the function `drop`.
+
+```Rust
+let x = 5;
+let y = x;
+```
+
+This binds the value of `5` to `x`; then makes a copy of the value in `x` and binds it to `y`. This is fine as integers have a fixed size, and are stored on the stack.
+
+```Rust
+let s1 = String::from("hello");
+let s2 = s1;
+```
+
+| string contents | purpose |
+| :--: | :--: |
+| ptr | points to the location of the string on the heap |
+| len | how much space, in bytes the string is taking up |
+| capacity | how much space we received from the allocator |
+
+so when we assign `s1` to `s2`, the string data is copied, meaning we copy the pointer, length and capacity straight onto the stack... Not the heap.
+
+now, `s2` will still have a pointer to the location in the heap, and when it goes out of scope, the drop function will still be called. which is an issue if you call `s1` or if `s1` later goes out of scope and tries to delete something that isn't there. you get a `double free` error.
+
+However Rust has a way around this, as soon as `s1` is copied to `s2`, it is no longer valid
+
+```Rust
+let s1 = String::from("hello");
+let s2 = s1;
+
+println!("{s1}, world!");
+```
+
+You will get an error because Rust prevents you from using the invalid reference.
+copying `s1` to `s2` is known as a `move`.
+
+### Scope and assignment
+
+```Rust
+let mut s = String::from("hello");
+s = String::from("ahoy");
+
+println!("{s}, world!");
+```
+
+after we reassign `s` to hold a different value, nothing is pointing to the area holding `hello` anymore, so it's dropped.
+
+### Variables and data with clone
+
+```Rust
+let s1 = String::from("hello");
+let s2 = s1.clone();
+
+println!("s1 = {s1}, s2 = {s2}");
+```
+
+Here the heap data does get copied. calls using `clone` are generally expensive.
+
+### Copy trait
+
+You can copy integers easily because they are stored on the stack. In fact, calling `.copy` on an integer will be the same as just `let x = y`. 
+
+Rust has a special annotation called the `Copy` trait. This is placed on types that are stored on the stack. If a type uses this trait, variables that use it do not `move`, but are trivially copied, so they're still valid after reassignment.
+
+Rust will not let you assign the `Copy` trait to something that has the `Drop` trait.
+
+Here are some types that implement `Copy`:
+
+- All integer types, like `u32`
+- Booleans
+- Floats, like `f64`
+- Character type, `char`
+- Tuples, if they only contain types that also `Copy`
+
+### Ownership and Functions
+
+Passing a variable to a function will move or copy. just as assignment does.
+
+```Rust
+fun main() {
+    let s = String::from("hello");
+    takes_ownership(s);
+
+    let x = 5;
+    makes_copy(x);
+} // at this point x and s go out of scope. however ownership was moved for s, so nothing happens there. and because x is an int, it's not dropped either.
+```
+
+If we tried to use `s` after `take_ownership`, we'd get a big ol compile-time error.
+
+```Rust
+fn main() {
+    let s1 = gives_ownership(); // s1 gets ownership from return value
+
+    let s2 = String::from("hello"); // s2 gets ownership of hello
+    let s3 = takes_and_gives_back(s2); // takes_and... takes ownership from s2, then gives ownership of its return value to s3
+} // at this point s1 and s3 are out of scope and dropped. s2 also goes out of scope, but it was moved, so nothing happens.
+```
+
+## The [Slice Type](https://doc.rust-lang.org/book/ch04-03-slices.html)
+
+Slices let you reference a contiguous sequence of elements in a collection. It's a type of reference so it doesn't have ownership.
+
+Lets say we want a function that either returns a whole string input, or everything in the string up until the first space.
+
+```Rust
+fn first_word(s: &String) -> ?
+```

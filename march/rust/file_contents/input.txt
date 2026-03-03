@@ -1,0 +1,5 @@
+Think of the stack like a stack of plates, if I need a plate, I'd grab one from the top. Taking it from the middle would be weird / inefficient. You also know exactly what size the plates are, otherwise they wouldn't stack well. Adding data is called pushing onto the stack and removing it is called popping off the stack. If you don't know what size data you're dealing with, you need to use the heap instead.
+
+When you put something into the heap, the memory allocator will check where is room, and then put it there, and note down where it is. This is a pointer, which it'll give you, so you can easily find it if you want to get rid of it. This is called allocating on the heap, or just allocating. Because the pointer is a known fixed size, you can then store that on the stack.
+
+Think of going to a restaurant. The waiter will ask how many in your group, and will then find a table that fits everyone. Then if someone arrives later, they can give the directions to your table.
