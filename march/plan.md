@@ -8,9 +8,9 @@ I'm going to be splitting my time with 6 hours a week on iOS dev, 4 hours on Rus
 
 Continue to progress through 100 days of Hacking with Swift.
 
-## Week 1
+## Week 1 ✅
 
-### Rust - Ownership & Moves
+### Rust - Ownership & Moves ✅
 
 Implement a CLI tool:
 
@@ -28,7 +28,7 @@ Questions:
 - When does a move occur?
 - Why does `String` move but `i32` copy?
 
-### ML - Linear Algebra
+### ML - Linear Algebra ✅
 
 Study:
 

@@ -5,7 +5,7 @@ I aim to spend about 4 hours per week on this.
 
 ## Weekly learning
 
-### Week 1 - Ownership & Moves
+### Week 1 - Ownership & Moves ✅
 
 Implement a CLI tool:
 

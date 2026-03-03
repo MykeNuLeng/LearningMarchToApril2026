@@ -4,7 +4,7 @@ This is my plan for learning ML in March 2026
 
 ## Weekly learning
 
-### Week 1 - Linear Algebra
+### Week 1 - Linear Algebra ✅
 
 Study:
 
