@@ -19,9 +19,11 @@ Implement in Python:
 ### Week 2 - Cost Function
 
 Derive:
+
 $$
 J(0) = \frac{1}{2m}\sum (h_{\theta}(x) - y)^2
 $$
+
 Explain:
 
 - Why square the error?
@@ -31,9 +33,11 @@ Explain:
 ### Week 3 - Gradient Descent
 
 Derive update rule:
+
 $$
 \theta \colonequals \theta - \alpha \nabla J(\theta)
 $$
+ 
 Implement:
 
 - Gradient descent loop manually.
