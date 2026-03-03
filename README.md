@@ -12,6 +12,16 @@
 
 Here is the [curriculum](march/plan.md) for the learning I need to do.
 
+Table tracking the weekly learning:
+
+| Subject Area | Week 1 | Week 2 | Week 3 | Week 4 |
+| :--: | :--: | :--: | :--: | :--: |
+| iOS  | | | | |
+| Rust 🦀 | ✅ | | | |
+| ML ∬ | ✅ | | | |
+
+Table for outline of work:
+
 | Subject Area | Planned Learning | Project | Retro |
 | :--: | :--: | :--: | :--: |
 | iOS  | [iOS Plan](march/ios/ios.md) | | |
