@@ -7,19 +7,21 @@ fn main() -> std::io::Result<()> {
     let mut word_count: HashMap<String, usize> = HashMap::new();
     
     for word in contents.split_whitespace() {
-        let san_word = word
-            .trim_matches(&['(', ')', ',', '.', ';', ':', '/', '\n'][..])
-            .to_lowercase();
+        let sanitized = sanitize(word);
+        if sanitized.is_empty() { continue; }
 
-        if san_word.is_empty() { continue; }
-
-        let count = word_count.entry(san_word).or_insert(0);
+        let count = word_count.entry(sanitized).or_insert(0);
         *count += 1;
     }
 
-    for (word, count) in word_count {
+    for (word, count) in &word_count {
         println!("{word}: {count}");
     }
 
     Ok(())
+}
+
+fn sanitize(word: &str) -> String {
+    word.trim_matches(&['(', ')', ',', '.', ';', ':', '/', '\n'][..])
+        .to_lowercase()
 }
