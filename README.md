@@ -16,8 +16,8 @@ Table tracking the weekly learning:
 
 | Subject Area | Week 1 | Week 2 | Week 3 | Week 4 |
 | :--: | :--: | :--: | :--: | :--: |
-| iOS  | | | | |
-| Rust 🦀 | ✅ | | | |
+| iOS  | ✅ | | | |
+| Rust 🦀 | ✅ | ✅ | | |
 | ML ∬ | ✅ | | | |
 
 Table for outline of work:
