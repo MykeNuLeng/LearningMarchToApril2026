@@ -238,4 +238,165 @@ fn main() {
 
 Functions can return values to the code that calls them. We must declare their type with an `->`. In Rust, the value of the return is synonymous with the value of the final line in a function. You can explicitly return with the `return` keyword as well.
 
-if a line is an expression that you want to return, you do not end it with a `;`.
+if a line is an expression that you want to return, you do not end it with a `;`. If you end a function with a line that ends in a `;`, you won't return anything. 
+
+## Comments
+
+Single line comments / inline comments are done with two `//`, if you want a multi line one, you need to put it on each line.
+
+## Control Flow
+
+### if expressions
+
+I'm going to create a new project called branches to explore this.
+
+```Rust
+fn main() {
+    let number = 3;
+
+    if number < 5 {
+        println!("condition was true");
+    } else {
+        println!("condition was false");
+    }
+}
+```
+
+Blocks of code associated with the conditions in `if` expressions are sometimes called `arms`, just like the `arms` in `match`.
+
+#### Handling multiple conditions with else if
+
+```Rust
+fn main() {
+    let number = 6;
+
+    if number % 4 == 0 {
+        println!("number is divisible by 4");
+    } else if number % 3 == 0 {
+        println!("number is divisible by 3");
+    } else if number % 2 == 0 {
+        println!("number is divisible by 3");
+    } else {
+        println!("number is not divisible by 4, 3, or 2");
+    }
+}
+```
+
+It's probably best to use Rust's `match` if you have more than one `else if`.
+
+#### Using an `if` in a `let` statement
+
+```Rust
+fn main() {
+    let condition = true;
+
+    let number = if condition { 5 } else { 6 };
+
+    println!("The value of number is: {number}");
+}
+```
+
+### Repetition with Loops
+
+The `loop` keyword tells Rust to execute a block until told to stop.
+
+you can put the `break` keyword into a loop to get Rust to break out of it when you want.
+
+```Rust
+fn main() {
+    loop {
+        println!("again!");
+    }
+}
+```
+
+Note - this is where I first noticed how quick Rust was.
+
+#### Returning Values with Loops
+
+To do this, you add the value you want returned after the `break`.
+
+```Rust
+fn main() {
+    let mut counter = 0;
+
+    let result = loop {
+        counter += 1;
+        
+        if counter == 10 {
+            break counter * 2;
+        }
+    };
+
+    println!("The result is: {result}");
+}
+```
+
+#### Disambiguating with Loop Labels
+
+If you have nested loops, `break` and `continue` apply to the innermost loop at that point. You can optionall specify a `loop label` on a loop to then use with `break` or `continue`.
+
+Loop labels begin with a singe quote `'`.
+
+```Rust
+fn main() {
+    let mut count = 0;
+
+    'counting_up: loop {
+        println!("count = {count}");
+        let mut remaining = 10;
+
+        loop {
+            println!("remaining = {remaining}");
+            if remaining == 9 {
+                break;
+            }
+            if count == 2 {
+                break 'counting_up;
+            }
+            remaining -= 1;
+        }
+        count += 1;
+    }
+
+    println!("End count = {count}");
+}
+```
+
+#### Streamlining Conditional Loops with While
+
+```Rust
+fn main() {
+    let mut number = 3;
+
+    while number != 0 {
+        println!("{number}");
+        number -= 1;
+    }
+
+    println!("LIFTOFF!!!");
+}
+```
+
+#### Looping Through a Collection with `for`
+
+```Rust
+fn main() {
+    let a = [10, 20, 30, 40, 50];
+
+    for element in a {
+        println!("the value is: {element}");
+    }
+}
+```
+
+Most people would choose to do the previous while loop as a for loop over a range, like this:
+
+```Rust
+fn main() {
+    for number in (1..4).rev() {
+        println!("{number}");
+    }
+    println!("LIFTOFF!!!!");
+}
+```
