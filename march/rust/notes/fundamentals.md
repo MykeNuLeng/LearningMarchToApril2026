@@ -176,3 +176,66 @@ fn main() {
     let second = a[1];
 }
 ```
+
+## Functions
+
+the `main` function is the entry point in Rust. `fn` keyword allows you to declare a new function. Rust code uses snake case for function and var names.
+
+```Rust
+fn main() {
+    println!("Hello, world!");
+
+    another_function();
+}
+
+fn another_function() {
+    println!("Another function.");
+}
+```
+
+You can call any function by entering its name followed by a pair of parenthesis. I'm going to create a project called `functions` in this repo to explore this further.
+
+### Params
+
+Params are defined within a function's `signature`. I'll add some params to another_function() - you must declare the type of each param in the function signature.
+
+When defining multiple params, separate them with a `,`.
+
+### Statements and Expressions
+
+Function bodies are made up of a series of statements ending in an expression.
+Rust is an expression based language.
+
+- Statements are instructions that perform some action and do not return a value.
+- Expressions evaluate to a resultant value.
+
+Here is a difference between statements and expressions:
+
+```Rust
+fn main() {
+    let y = 6; // a statement
+
+    let y = (let x = 4); // if let x = 4 resulted in a return, this would work, it doesn't so error
+
+    let x = random_number(); // random_number() is a function that ends in an expression, so will be able to assign a viable to it.
+}
+```
+
+Calling a function is an expression, calling a macro is an expression, a new scope block created with `{}` is an expression.
+
+```Rust
+fn main() {
+    let y = {
+        let x = 3;
+        x + 1
+    };
+    
+    println!("The value of y is: {y}");
+}
+```
+
+### Functions with return values
+
+Functions can return values to the code that calls them. We must declare their type with an `->`. In Rust, the value of the return is synonymous with the value of the final line in a function. You can explicitly return with the `return` keyword as well.
+
+if a line is an expression that you want to return, you do not end it with a `;`.
