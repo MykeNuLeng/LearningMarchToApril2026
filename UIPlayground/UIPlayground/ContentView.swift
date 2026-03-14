@@ -49,29 +49,33 @@ struct SheetContentView: View {
 
 				ZStack {
 					if isExploding {
+						Circle()
+							.padding(50)
+							.opacity(0)
 						ForEach(0..<60) { i in
 							ExplodingFragment(index: i)
 						}
-					}
-					Circle()
-						.fill(.red.opacity(isAnimating ? 0.0 : 0.8))
-						.scaleEffect(isAnimating ? 0.8 : 0.1)
-						.padding(50)
-						.animation(
-							.easeInOut(duration: 1.5).repeatForever(autoreverses: false),
-							value: isAnimating
-						)
-						.onAppear {
-							isAnimating = true
-						}
-						.onDisappear { isAnimating = false }
+					} else {
+						Circle()
+							.fill(.red.opacity(isAnimating ? 0.0 : 0.8))
+							.scaleEffect(isAnimating ? 0.8 : 0.1)
+							.padding(50)
+							.animation(
+								.easeInOut(duration: 1.5).repeatForever(autoreverses: false),
+								value: isAnimating
+							)
+							.onAppear {
+								isAnimating = true
+							}
+							.onDisappear { isAnimating = false }
 
-					Button {
-						isAnimating = false
-						isExploding = true
-					} label: {
-						Text("💣")
-							.font(.system(size: 100))
+						Button {
+							isAnimating = false
+							isExploding = true
+						} label: {
+							Text("💣")
+								.font(.system(size: 100))
+						}
 					}
 				}
 
@@ -97,23 +101,24 @@ struct ExplodingFragment: View {
 	@State private var offset: CGSize = .zero
 	@State private var opacity: Double = 1
 	@State private var rotation: Double = 0
+	let colour: Color = [.red, .orange, .yellow].randomElement()!
 
 	var body: some View {
 		Rectangle()
-			.fill(.red.opacity(opacity))
-			.frame(width: 10, height: 20)
-			.rotationEffect(.degrees(rotation))
+			.fill(colour.opacity(opacity))
+			.frame(width: 10, height: 15)
+			.rotationEffect(.radians(rotation))
 			.offset(offset)
 			.onAppear {
-				let angle = Double(index) * (360.0 / 60)
-				let distance: Double = Double.random(in: 50..<300)
+				let angle = Double(index) * 2 * .pi / 60
+				let distance: Double = Double.random(in: 50..<250)
 				withAnimation(.easeOut(duration: 0.8)) {
 					offset = CGSize(
-						width: cos(angle * .pi / 180) * distance,
-						height: sin(angle * .pi / 180) * distance
+						width: cos(angle) * distance,
+						height: sin(angle) * distance
 					)
 					opacity = 0.3
-					rotation = Double.random(in: -360...360)
+					rotation = Double.random(in: -3 * .pi ... 3 * .pi)
 				}
 			}
 	}
@@ -122,51 +127,3 @@ struct ExplodingFragment: View {
 #Preview {
     ContentView()
 }
-
-//ZStack {
-//	LinearGradient(colors: [.red, .orange, .yellow], startPoint: .topLeading, endPoint: .bottomTrailing)
-//		.ignoresSafeArea()
-//
-//	VStack {
-//		Spacer()
-//
-//		Text("Do you want to delete the data in database?")
-//			.multilineTextAlignment(.center)
-//			.fixedSize(horizontal: false, vertical: true)
-//			.font(.largeTitle.bold())
-//			.padding(30)
-//			.foregroundStyle(.black)
-//			.shadow(radius: 50)
-//			.opacity(0.9)
-//
-//		Spacer()
-//		Spacer()
-//		Spacer()
-//
-//		ZStack {
-//			Circle()
-//				.fill(.red.opacity(isAnimating ? 0.0 : 0.8))
-//				.scaleEffect(isAnimating ? 0.8 : 0.1)
-//				.padding(50)
-//				.animation(
-//					.easeInOut(duration: 1.5).repeatForever(autoreverses: false),
-//					value: isAnimating
-//				)
-//				.onAppear {
-//					isAnimating = true
-//				}
-//				.onDisappear { isAnimating = false }
-//
-//			Button {
-//				isSheetVisable = false
-//			} label: {
-//				Text("💣")
-//					.font(.system(size: 100))
-//			}
-//		}
-//
-//		Spacer()
-//		Spacer()
-//		Spacer()
-//	}
-//}
