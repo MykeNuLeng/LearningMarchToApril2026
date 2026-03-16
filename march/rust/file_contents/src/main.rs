@@ -6,8 +6,13 @@ fn main() -> std::io::Result<()> {
 
     let mut word_count: HashMap<String, usize> = HashMap::new();
     
-    for word in contents.split_whitespace() {
-        let sanitized = sanitize(word);
+    for content in contents.split_whitespace() {
+        let word = Word {
+            word_ref: content,
+        };
+
+        let sanitized = word.sanitize();
+
         if sanitized.is_empty() { continue; }
 
         let count = word_count.entry(sanitized).or_insert(0);
@@ -21,7 +26,13 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-fn sanitize(word: &str) -> String {
-    word.trim_matches(&['(', ')', ',', '.', ';', ':', '/', '\n'][..])
+struct Word<'a> {
+    word_ref: &'a str,
+}
+
+impl<'a> Word<'a> {
+    fn sanitize(&self) -> String {
+        self.word_ref.trim_matches(&['(', ')', ',', '.', ';', ':', '/', '\n'][..])
         .to_lowercase()
+    }
 }
