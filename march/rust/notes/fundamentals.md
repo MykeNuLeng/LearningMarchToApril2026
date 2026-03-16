@@ -400,3 +400,267 @@ fn main() {
     println!("LIFTOFF!!!!");
 }
 ```
+
+## Structs
+
+A way to group data
+
+### Defining and Instantiating Structs
+
+To define a struct, you enter the keyword `struct` and give it a name. It should describe the significance of the data being grouped together. Then, inside curly braces, we define the names and types of data, called fields.
+
+```Rust
+struct User {
+    active: bool,
+    username: String,
+    email: String,
+    sign_in_count: u64,
+}
+```
+
+To use a struct, we define an instance of one and specify concrete values for each of the fields using curly braces containing `key: value` pairs.
+
+```Rust
+fn main() {
+    let mut user1 = User {
+        active: true,
+        username: String::from("someusername123)"),
+        email: String::from("someone@example.com"),
+        sign_in_count: 1,
+    }l
+}
+```
+
+To get a specific value, we use dot notation. For example: 
+
+```Rust
+user1.email = String::from("anotheremail@example.com");
+```
+
+Note: the entire instance must be mutable, you can't only mark certain fields as mutable.
+
+```Rust
+fn build_user(email: String, username: String) -> User {
+    User {
+        active: true,
+        username: username,
+        email: email,
+        sign_in_count = 1,
+    }
+}
+```
+
+This is a cumbersome way to define default values.
+
+#### Using the Field Init Shorthand
+
+Because the params and the struct field names have the exact same names, we can use the field init shorthand.
+
+```Rust
+fn build_user(email: String, username: String) -> User {
+    User {
+        active: true,
+        username,
+        email,
+        sign_in_count: 1,
+    }
+}
+```
+
+#### Creating Instances With Struct Update Syntax
+
+It's often useful to create a new instance of a struct that includes most of the values from another instance of that struct.
+
+To do this the regular way, this is what it would look like:
+
+```Rust
+fn main() {
+    let user2 = User {
+        active: user1.active,
+        username: user1.username,
+        email: String::from("another@example.com"),
+        sign_in_count: user1.sign_in_count,
+    };
+}
+```
+
+Now using struct update syntax, it is much easier - the syntax `..` specifies that the remaining fields should be given the same values as the given instance.
+
+```Rust
+fn main() {
+    let user2 = User {
+        email: String::from("another@example.com"),
+        ..user1
+    };
+}
+```
+
+It is worth noting that struct update syntax moves the data, so we can't use `user1` after this. If we gave `user2` a new string for its username and only used the update for `active` and `sign_in_count`, then we could still use `user1`.
+
+#### Creating Different Types with Tuple Structs
+
+Tuple structs don't have names associated with their fields, just the type.
+
+To define a tuple struct, start with the `struct` keyword, followed by the name, and then the tuple with its types as the values.
+
+```Rust
+struct Color(i32, i32, i32);
+struct Point(i32, i32, i32);
+
+fn main() {
+    let black = Color(0, 0, 0);
+    let origin = Point(0, 0, 0);
+}
+```
+
+Note: black and origin are different because they are of different struct types.
+
+#### Defining Unit-Like Structs
+
+A struct without any fields is called a unit like struct. They behave similarly to (). They are useful when you want to implement a trait on a particular type, but don't have any data you want to associate with it.
+
+```Rust
+struct AlwaysEqual;
+
+fn main() {
+    let subject = AlwaysEqual;
+}
+```
+
+
+### Methods
+
+```Rust
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        height: 50,
+    };
+
+    println!(
+        "The area of the rectangle is {} square pixels",
+        rect1.area()
+    )
+}
+```
+
+We use a `impl` / implementation block for `Rectangle` to define a method. Everything in the `impl` block is associated with the `Rectangle` struct.
+
+Methods must have their first param name either `self` of type `Self`, so Rust lets you shorten this to only using `self`. We still put the `&` to indicate that we're borrowing.
+
+Having a method that takes ownership of `self` in the params is rare.
+
+We can choose to name a method the same as one of the structs fields:
+
+```Rust
+impl Rectangle {
+    fn width(&self) -> {
+        self.width > 0
+    }
+}
+
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        height: 50,
+    };
+
+    if rect1.width() {
+        println!("The rectangle has a nonzero width; it is {}", rect1.width);
+    }
+}
+```
+
+Most often when you're implementing a method with the same name as a field, you are defining a `getter`, in this case, you're returning the value of the field. This is how you can set a field to be private, but the method as public.
+
+#### Automatic Refs
+
+It's worth noting that these are the same, Rust fills in the extra.
+
+```Rust
+p1.distance(&p2);
+(&p1).distance(&p2);
+```
+
+#### Methods with More Params
+
+```Rust
+fn main() {
+    let rect1 = Rectangle {
+        width: 30,
+        height: 50,
+    };
+
+    let rect2 = Rectangle {
+        width: 10,
+        height: 40,
+    };
+
+    let rect3 = Rectangle {
+        width: 60,
+        height: 45,
+    };
+
+    println!("Can rect1 hold rect2? {}", rect1.can_hold(&rect2));
+    println!("Can rect1 hold rect3? {}", rect1.can_hold(&rect3));
+}
+```
+
+#### Associated Functions
+
+All functions in an `impl` block are *associated functions* because they're associated with the type named after the `impl` keyword.
+
+We can define associated functions as anything in the `impl` block that doesn't take `self` as a param - so aren't a method.
+
+We've already used one `String::from` function that's defined on the `String` type.
+
+Associated functions are often used for constructors. These are mostly called `new` - this isn't a special name that's build into the language, but is used by convention.
+
+For example, we could define an associated function called `square` that would have one dimension param, and would return a square `Rectangle`
+
+```Rust
+impl Rectangle {
+    fn square(size: u32) -> Self {
+        Rectangle {
+            width: size,
+            height: size,
+        }
+    }
+}
+```
+
+To call this we would use the `::` syntax:
+
+```Rust
+Rectangle::square(5);
+```
+
+#### Multiple `impl` blocks
+
+Each struct is allowed to have multiple `impl` blocks.
+
+```Rust
+impl Rectangle {
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+}
+
+impl Rectangle {
+    fn can_hold(&self, other: &Rectangle) -> bool {
+        self.width > other.width && self.height > other.height
+    }
+}
+```
