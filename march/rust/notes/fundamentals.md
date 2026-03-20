@@ -664,3 +664,237 @@ impl Rectangle {
     }
 }
 ```
+
+## Enums and Pattern Matching
+
+### Defining an Enum
+
+```Rust
+enum IpAddrKind {
+    V4,
+    V6,
+}
+```
+
+### Enum Values
+
+We can create instances of each of the two `IpAddrKind` like this:
+
+```Rust
+let four = IpAddrKind::V4;
+let six = IpAddrKind::V6;
+```
+
+As both `V6` and `V4` are of type `IpAddrKind` you can define a function that takes any `IpAddrKind`:
+
+```Rust
+fn route(ip_kind: IpAddrKind) {}
+```
+
+Add we can call it with either variant:
+
+```Rust
+route(IpAddrKind::V4);
+route(IpAddrKind::V6);
+```
+
+You can give an enum an associated value
+
+```Rust
+enum IpAddr {
+    V4(String),
+    V6(String),
+}
+
+let home = IpAddr::V4(String::from("127.0.0.1"));
+let loopback = IpAddr::V6(String::from("::1"));
+```
+
+Enums can have different associated types with each of their variants:
+
+```Rust
+enum IpAddr {
+    V4(u8, u8, u8, u8),
+    V6(String),
+}
+```
+
+### The Option Enum
+
+```Rust
+enum Option<T> {
+    None,
+    Some(T),
+}
+```
+
+```Rust
+let some_number = Some(5);
+let some_char = Some('c');
+
+let absent_number: Option<i32> = None;
+```
+
+### The Match Control Flow Construct
+
+```Rust
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter,
+}
+
+fn value_in_cents(coin: Coin) -> u8 {
+    match coin {
+        Coin::Penny => 1,
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter => 25,
+    }
+}
+```
+
+The match contains arms - an arm has a pattern and some code. The first arm here has a pattern of `Coin::Penny` and then the => operator has the code that will run, here that is just the value `1`
+
+You don't typically use curly braces if the code is short.
+
+### Patterns That Bind to Values
+
+```Rust
+#[derive(Debug)]
+enum UsState {
+    Alabama,
+    Alaska,
+    // --snip--
+}
+
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter(UsState),
+}
+```
+
+You can then use the US State in the arm for that match.
+
+```Rust
+fn value_in_cents(coin: Coin) -> u8 {
+    match coin {
+        Coin::Penny => 1,
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter => {
+            println!("State quarter from {state:?}!");
+            25
+        }
+    }
+}
+```
+
+### The Option<T> match Pattern
+
+Lets say we want a function that takes an Option<i32> and if there's a value, increments it by 1.
+
+```Rust
+fn plus_one(x: Option<i32>) -> Option<i32> {
+    match x {
+        None => None,
+        Some(i) => Some(i + 1),
+    }
+}
+
+let five = Some(5);
+let six = plus_one(five);
+let none = plus_one(None);
+```
+
+### Matches are Exhaustive
+
+The patterns must cover all possibilities.
+
+### Catch-All Patterns and the _ Placeholder
+
+Let's say we're playing a game where if the player rolls a `3` they get a fancy new hat, if they roll a `7`, they lose it, and any other number they move by that amount of spaces.
+
+```Rust
+let dice_roll = 9;
+match dice_roll {
+    3 => add_fancy_hat(),
+    7 => remove_fancy_hat(),
+    other => move_player(other),
+}
+
+fn add_fancy_hat() {}
+fn remove_fancy_hat() {}
+fn move_player(num_spaces: u8) {}
+```
+
+Note - if you put the catch all arm before other arms, those wont run, and Rust will give you a warning.
+
+Rust also has a `_` to use if you want a catch all pattern, but don't wanna use the variable.
+
+### Concise Control Flow with if let and let else
+
+```Rust
+let config_max = Some(3u8);
+if let Some(max) = config_max {
+    println!("The maximum is configured to be {max}");
+}
+```
+
+```Rust
+let mut count = 0;
+if let Coin::Quarter(state) = coin {
+    println!("State quarter from {state:?}!");
+} else {
+    count += 1;
+}
+```
+
+#### Staying on the happy path with if let else
+
+```Rust
+impl UsState {
+    fn existed_in(&self, year: u16) -> bool {
+        match self {
+            UsState::Alabama => year >= 1819,
+            USState::Alaska => year >= 1959,
+            // -- snip --
+        }
+    }
+}
+```
+
+```Rust
+fn describe_state_quarter(coin: Coin) -> Option<String> {
+    let state = if let Coin::Quarter(state) = coin {
+        state
+    } else {
+        return None;
+    };
+
+    if state.existed_in(1900) {
+        Some(format!("{state:?} is pretty old, for America!"))
+    } else {
+        Some(format!("{state:?} is relatively new."))
+    }
+}
+```
+
+This kinda feels janky, so we use let else instead
+
+```Rust
+fn describe_state_quarter(coin: Coin) -> Option<String> {
+    let Coin::Quarter(state) = coin else {
+        return None;
+    };
+
+    if state.existed_in(1900) {
+        Some(format!("{state:?} is pretty old, for America!"))
+    } else {
+        Some(format!("{state:?} is relatively new."))
+    }
+}
+```
