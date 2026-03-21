@@ -65,15 +65,15 @@ impl Rock {
         let slice = &self.interactions[start..];
 
         if slice.iter().filter(|&x| x == &Interaction::Poke).count() >= 3 {
-            println!("{} is shaking with rage", self.name);
+            println!("{} is shaking with rage\n", self.name);
         } else if slice.iter().filter(|&x| x == &Interaction::Ignore).count() >= 3 {
-            println!("You can see the top of {} starting to droop, must {} become a diamond to get any attention?", self.name, self.name);
+            println!("You can see the top of {} starting to droop, must {} become a diamond to get any attention?\n", self.name, self.name);
         } else if slice.iter().filter(|&x| x == &Interaction::Admire).count() >= 4 {
-            println!("You can't be sure, but it looks like {} is blushing?", self.name);
+            println!("You can't be sure, but it looks like {} is blushing?\n", self.name);
         } else if slice.iter().filter(|&x| x == &Interaction::Pet).count() >= 2 {
-            println!("{} looks oddly content for a rock", self.name);
+            println!("{} looks oddly content for a rock\n", self.name);
         } else {
-            println!("{} is just sitting there letting nothing affect them, not even the steady march of time", self.name);
+            println!("{} is just sitting there letting nothing affect them, not even the steady march of time\n", self.name);
         }
     }
 }
