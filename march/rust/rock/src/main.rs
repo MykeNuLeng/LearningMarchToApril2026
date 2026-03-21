@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 fn main() {
     let mut pet_rock: Rock = confy::load("rock", None).unwrap();
 
-    if pet_rock.name == "" && pet_rock.interactions == Vec::new() {
+    if pet_rock.name.is_empty() && pet_rock.interactions.is_empty() {
         pet_rock.name = Input::new()
             .with_prompt("Awww, you have a pet rock!\n What will you name them?")
             .interact_text()
@@ -13,27 +13,25 @@ fn main() {
         println!("I think {} is a great name", pet_rock.name);
     }
 
-    let labels: Vec<&str> = ACTIONS.iter().map(|label| label.0).collect();
-
     loop {
         let idx = Select::new()
             .with_prompt(format!("What will you do to {}", pet_rock.name))
-            .items(&labels)
+            .items(ACTIONS)
             .interact()
             .unwrap();
 
-        match &ACTIONS[idx].1 {
-            Interaction::Pebbles => {
+        match ACTIONS[idx] {
+            "Pebbles" => {
                 println!("Oh no...");
-                pet_rock.name = String::from("");
-                pet_rock.interactions = Vec::new();
+                pet_rock = Rock::default();
                 break;
             }
-            Interaction::Pet => pet_rock.interact(Interaction::Pet),
-            Interaction::Poke => pet_rock.interact(Interaction::Poke),
-            Interaction::Wave => pet_rock.interact(Interaction::Wave),
-            Interaction::Ignore => pet_rock.interact(Interaction::Ignore),
-            Interaction::Admire => pet_rock.interact(Interaction::Admire),
+            "Pet" => pet_rock.interact(Interaction::Pet),
+            "Poke" => pet_rock.interact(Interaction::Poke),
+            "Wave" => pet_rock.interact(Interaction::Wave),
+            "Ignore" => pet_rock.interact(Interaction::Ignore),
+            "Admire" => pet_rock.interact(Interaction::Admire),
+            _ => (),
         }
         
         pet_rock.attitude();
@@ -53,13 +51,13 @@ enum Interaction {
     Pebbles,
 }
 
-const ACTIONS: &[(&str, Interaction)] = &[
-    ("Pet", Interaction::Pet),
-    ("Poke", Interaction::Poke),
-    ("Wave", Interaction::Wave),
-    ("Ignore", Interaction::Ignore),
-    ("Admire", Interaction::Admire),
-    ("Pebbles", Interaction::Pebbles),
+const ACTIONS: &[&str] = &[
+    "Pet",
+    "Poke",
+    "Wave",
+    "Ignore",
+    "Admire",
+    "Pebbles",
 ];
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -74,7 +72,7 @@ impl Rock {
     }
 
     fn attitude(&self) {
-        let start = if self.interactions.len() < 7 {0} else {self.interactions.len() - 7};
+        let start = self.interactions.len().saturating_sub(7);
         let slice = &self.interactions[start..];
 
         if slice.iter().filter(|&x| x == &Interaction::Poke).count() >= 3 {
