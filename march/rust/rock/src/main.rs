@@ -1,16 +1,23 @@
-use dialoguer::Select;
+use dialoguer::{Input, Select};
+use serde::{Deserialize, Serialize};
 
 fn main() {
-    let mut dwayne = Rock {
-        name: String::from("Dwayne"),
-        interactions: Vec::new(),
-    };
+    let mut pet_rock: Rock = confy::load("rock", None).unwrap();
+
+    if pet_rock.name == "" && pet_rock.interactions == Vec::new() {
+        pet_rock.name = Input::new()
+            .with_prompt("Awww, you have a pet rock!\n What will you name them?")
+            .interact_text()
+            .unwrap();
+
+        println!("I think {} is a great name", pet_rock.name);
+    }
 
     let labels: Vec<&str> = ACTIONS.iter().map(|label| label.0).collect();
 
     loop {
         let idx = Select::new()
-            .with_prompt(format!("What will you do to {}", dwayne.name))
+            .with_prompt(format!("What will you do to {}", pet_rock.name))
             .items(&labels)
             .interact()
             .unwrap();
@@ -18,20 +25,25 @@ fn main() {
         match &ACTIONS[idx].1 {
             Interaction::Pebbles => {
                 println!("Oh no...");
+                pet_rock.name = String::from("");
+                pet_rock.interactions = Vec::new();
                 break;
             }
-            Interaction::Pet => dwayne.interact(Interaction::Pet),
-            Interaction::Poke => dwayne.interact(Interaction::Poke),
-            Interaction::Wave => dwayne.interact(Interaction::Wave),
-            Interaction::Ignore => dwayne.interact(Interaction::Ignore),
-            Interaction::Admire => dwayne.interact(Interaction::Admire),
+            Interaction::Pet => pet_rock.interact(Interaction::Pet),
+            Interaction::Poke => pet_rock.interact(Interaction::Poke),
+            Interaction::Wave => pet_rock.interact(Interaction::Wave),
+            Interaction::Ignore => pet_rock.interact(Interaction::Ignore),
+            Interaction::Admire => pet_rock.interact(Interaction::Admire),
         }
         
-        dwayne.attitude();
+        pet_rock.attitude();
+        confy::store("rock", None, &pet_rock).unwrap();
     }
+
+    confy::store("rock", None, &pet_rock).unwrap();
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Serialize, Deserialize)]
 enum Interaction {
     Pet,
     Poke,
@@ -50,6 +62,7 @@ const ACTIONS: &[(&str, Interaction)] = &[
     ("Pebbles", Interaction::Pebbles),
 ];
 
+#[derive(Serialize, Deserialize, Default, Debug)]
 struct Rock {
     name: String,
     interactions: Vec<Interaction>
@@ -72,7 +85,9 @@ impl Rock {
             println!("You can't be sure, but it looks like {} is blushing?\n", self.name);
         } else if slice.iter().filter(|&x| x == &Interaction::Pet).count() >= 2 {
             println!("{} looks oddly content for a rock\n", self.name);
-        } else {
+        } else if slice.iter().filter(|&x| x == &Interaction::Wave).count() >= 2 {
+            println!("{} is starting to think you're making fun of their lack of arms...\n", self.name);
+        }else {
             println!("{} is just sitting there letting nothing affect them, not even the steady march of time\n", self.name);
         }
     }
