@@ -75,17 +75,30 @@ impl Rock {
         let start = self.interactions.len().saturating_sub(7);
         let slice = &self.interactions[start..];
 
-        if slice.iter().filter(|&x| x == &Interaction::Poke).count() >= 3 {
+        let (mut pokes, mut ignores, mut admires, mut pets, mut waves) = (0, 0, 0, 0, 0);
+
+        for interaction in slice {
+            match interaction {
+                Interaction::Pet => pets += 1,
+                Interaction::Poke => pokes += 1,
+                Interaction::Wave => waves += 1,
+                Interaction::Ignore => ignores += 1,
+                Interaction::Admire => admires += 1,
+                _ => (),
+            }
+        }
+
+        if pokes >= 3 {
             println!("{} is shaking with rage\n", self.name);
-        } else if slice.iter().filter(|&x| x == &Interaction::Ignore).count() >= 3 {
+        } else if ignores >= 3 {
             println!("You can see the top of {} starting to droop, must {} become a diamond to get any attention?\n", self.name, self.name);
-        } else if slice.iter().filter(|&x| x == &Interaction::Admire).count() >= 4 {
+        } else if admires >= 4 {
             println!("You can't be sure, but it looks like {} is blushing?\n", self.name);
-        } else if slice.iter().filter(|&x| x == &Interaction::Pet).count() >= 2 {
+        } else if pets >= 2 {
             println!("{} looks oddly content for a rock\n", self.name);
-        } else if slice.iter().filter(|&x| x == &Interaction::Wave).count() >= 2 {
+        } else if waves >= 2 {
             println!("{} is starting to think you're making fun of their lack of arms...\n", self.name);
-        }else {
+        } else {
             println!("{} is just sitting there letting nothing affect them, not even the steady march of time\n", self.name);
         }
     }
