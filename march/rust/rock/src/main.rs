@@ -1,5 +1,6 @@
 use dialoguer::{Input, Select};
 use serde::{Deserialize, Serialize};
+use strum::{IntoEnumIterator, EnumIter};
 
 fn main() {
     let mut pet_rock: Rock = confy::load("rock", None).unwrap();
@@ -13,14 +14,16 @@ fn main() {
         println!("I think {} is a great name", pet_rock.name);
     }
 
+    let actions: Vec<&str> = Interaction::iter().map(|x| x.to_str()).collect();
+
     loop {
         let idx = Select::new()
             .with_prompt(format!("What will you do to {}", pet_rock.name))
-            .items(ACTIONS)
+            .items(&actions)
             .interact()
             .unwrap();
 
-        match ACTIONS[idx] {
+        match actions[idx] {
             "Pebbles" => {
                 println!("Oh no...");
                 pet_rock = Rock::default();
@@ -41,7 +44,7 @@ fn main() {
     confy::store("rock", None, &pet_rock).unwrap();
 }
 
-#[derive(PartialEq, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, EnumIter)]
 enum Interaction {
     Pet,
     Poke,
@@ -51,14 +54,18 @@ enum Interaction {
     Pebbles,
 }
 
-const ACTIONS: &[&str] = &[
-    "Pet",
-    "Poke",
-    "Wave",
-    "Ignore",
-    "Admire",
-    "Pebbles",
-];
+impl Interaction {
+    fn to_str(self) -> &'static str {
+        match self {
+            Interaction::Pet => "Pet",
+            Interaction::Poke => "Poke",
+            Interaction::Wave => "Wave",
+            Interaction::Ignore => "Ignore",
+            Interaction::Admire => "Admire",
+            Interaction::Pebbles => "Pebbles",
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 struct Rock {

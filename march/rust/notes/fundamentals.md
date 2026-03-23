@@ -898,3 +898,76 @@ fn describe_state_quarter(coin: Coin) -> Option<String> {
     }
 }
 ```
+
+## Packages, Crates, and Modules
+
+A package can contain multiple binary crates, and optionally one library crate.
+
+You can't have two items with the same name in the same scope.
+
+### Packages and Crates
+
+A crate is the smallest amount of code that the Rust compiler considers at a time.
+
+A crate can come in one of two forms:
+
+- A binary crate
+    > programs that you can compile to an executable that you can run, each must have a function called `main`
+- A library crate
+    > define functionality intended to be shared with multiple projects.
+
+A Package is a bundle of one or more crates that provides a set of functionality. A package contains Cargo.toml
+
+#### Control Scope and Privacy with Modules
+
+##### Modules Cheat Sheet
+
+Code within a module is private from its parent modules by default. 
+
+To declare a module as public, use `pub mod` instead of `mod`. To make items within a public module public as well, use `pub` before their declarations.
+
+```Rust
+use crate::garden::vegetables::Asparagus;
+
+pub mod garden;
+
+fn main() {
+    let plant = Asparagus {};
+    println!("I'm growing {plant:?}!");
+}
+```
+
+the `pub mod garden` line tells the compiler to include the code it finds in src/garden.rs
+
+### Paths for Referring to an item in the Module Tree
+
+You can use an absolute path or a relative path.
+
+Both separate identifiers with `::`.
+
+#### Exposing Paths with the `pub` Keyword
+
+```Rust
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+```
+
+#### Starting Relative Paths with `super`
+
+```Rust
+fn deliver_order() {}
+
+mod back_of_house {
+    fn fix_incorrect_order() {
+        cook_order();
+        super::deliver_order();
+    }
+
+    fn cook_order() {}
+}
+```
+
+This is similar to using `..` in the start of a relative path in a file system.
