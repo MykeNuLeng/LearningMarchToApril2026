@@ -971,3 +971,496 @@ mod back_of_house {
 ```
 
 This is similar to using `..` in the start of a relative path in a file system.
+
+### Bringing Paths into Scope with the `use` Keyword
+
+Currently, we have to use the full path of a function to call it - however if you add `use crate::path::to:fn` you can just use the func as if it were defined in this file.
+
+```Rust
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+
+use crate::front_of_house::hosting;
+
+pub fn eat_at_restaurant() {
+    hosting::add_to_waitlist();
+}
+```
+
+Note - I could change the use to have the full path of the function, then I could call the function with just `add_to_waitlist();` however in Rust it is idiomatic to go to the parent of the function, so that it is clear that you are using a function from outside of your scope.
+
+However, when bringing in structs, enums and other items with use, it's idiomatic to call in the full path.
+
+```Rust
+use std::collections::HashMap;
+
+fn main() {
+    let mut map = HashMap::new();
+    map.insert(1, 2);
+}
+```
+
+However, if you're bringing in two items with the same name, then it's best to call the parents instead:
+
+```Rust
+use std::fmt;
+use std::io;
+
+fn function() -> fmt::Result {
+    // --snip--
+}
+
+fn function2() -> io::Result {
+    // --snip--
+}
+```
+
+The other way around it is to use the `as` keyword
+
+```Rust
+use std::fmt::Result;
+use std::io::Result as IoResult;
+
+fn function1() -> Result {
+    // --snip--
+}
+
+fn function2() -> IoResult {
+    // --snip--
+}
+```
+
+#### Re-exporting Names with `pub use`
+
+```Rust
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+
+pub use crate::front_of_house::hosting;
+
+pub fn eat_at_restaurant() {
+    hosting::add_to_waitlist();
+}
+```
+
+Here, `front_of_house` isn't public, so someone using our `lib` wont be able to call anything inside it. However, now we've got a `pub use crate::front_of_house::hosting;` someone can call `use restaurant::hosting::add_to_waitlist()`. We haven't exposed the private `front_of_house` module, but we've allowed someone access to a submodule.
+
+#### Using External Packages
+
+Lets say we want to use `rand` in our project - to do so we'll add `rand = "0.8.5"` to our `Cargo.toml` - which is telling cargo to download the `rand` package and make it available for our project.
+
+Then, whenever we want to bring it into use in our project, we'll add `use rand::Rng;` in that module.
+
+```Rust
+use rand::Rng;
+
+fn main() {
+    let secret_number = rand::thread_rng().gen_range(1..=100);
+}
+```
+
+#### Using Nested Paths to Clean Up `use` Lists
+
+```Rust
+use std::cmp::Ordering;
+use std::io;
+```
+
+Becomes this:
+
+```Rust
+use std::{cmp::Ordering, io};
+```
+
+Or this:
+
+```Rust
+use std::io;
+use std::io::Write;
+```
+
+Becomes this:
+
+```Rust
+use std::io::{self, Write};
+```
+
+#### Importing Items with the Glob Operator
+
+If you want to bring in all pub items into scope, you can do this with the `*` / glob operator.
+
+```Rust
+use std::collections::*;
+```
+
+This can make it hard to keep track of what names you've brought into scope, so be careful.
+
+### Separating Modules into Different Files
+
+
+In file: src/lib.rs
+
+```Rust
+mod front_of_house;
+
+pub use crate::front_of_house::hosting;
+
+pub fn eat_at_restaurant() {
+    hosting::add_to_waitlist();
+}
+```
+
+In file: src/front_of_house.rs
+
+```Rust
+pub mod hosting {
+    pub fn add_to_waitlist() {}
+}
+```
+
+You only need to load a file using `mod` once in the module tree. Other files that want to use it should refer to the file that called the mod statement.
+
+## Common Collections
+
+### Vectors
+
+`Vec<T>`, allows you to store more than one value in a single data structure. Vectors can only store values of the same type.
+
+#### Creating a New Vector
+
+Call `Vec::new();` like so:
+
+```Rust
+let v: Vec<i32> = Vec::new();
+```
+
+As we didn't add any values to the vector, we had to use type allocation so Rust know what kind of elements to store. 
+
+If you want to implement a vec with values to start, we can use the `vec!` macro.
+
+```Rust
+let v = vec![1, 2, 3];
+```
+
+#### Updating a Vector
+
+```Rust
+let mut v = Vec::new();
+
+v.push(5);
+v.push(6);
+```
+
+#### Reading Elements of Vectors
+
+```Rust
+let v = vec![1, 2, 3, 4, 5];
+
+let third: &i32 = &v[2];
+println!("The third element is {third}");
+
+let third: Option<&i32> = v.get(2);
+match third {
+    Some(third) => println!("The third element is {third}"),
+    None => println!("There is no third element"),
+}
+```
+
+```Rust
+let mut v = vec![1, 2, 3, 4, 5];
+
+let first: &i32 = &v[0];
+
+v.push(6);
+
+println!("The first element is: {first}");
+```
+
+You get a compiler error here - you've got a ref and then you're going to change the vector.
+
+#### Iterating Over the Values in a Vector
+
+```Rust
+let v = vec![1, 2, 3, 4, 5];
+
+for i in &v {
+    println!("{i}");
+}
+```
+
+You can also iterate over mutable refs
+
+```Rust
+let mut v = vec![1, 2, 3, 4, 5];
+
+for i in &mut v {
+    *i += 50;
+}
+```
+
+To do this we have to use the `*` dereference operator to get to the value in `i` before we can use the `+=` operator.
+
+#### Using an Enum to Store Multiple Types
+
+```Rust
+enum SpreadsheetCell {
+    Int(i32),
+    Float(f64),
+    Text(String),
+}
+
+let row = vec![
+    SpreadsheetCell::Int(3),
+    SpreadsheetCell::Float(1.11),
+    SpreadsheetCell::Text(String::from("Hello")),
+];
+```
+
+#### Dropping a Vector Drops its Elements
+
+```Rust
+{
+    let v = vec![1, 2, 3, 4, 5];
+
+    // do stuff with v
+} // v goes out of scope
+```
+
+### Strings
+
+#### Creating a New String
+
+```Rust
+let mut s = String::new();
+
+let data = "initial contents";
+let s = data.to_string();
+
+let s = "initial contents".to_string();
+
+let s = String::from("initial contents");
+```
+
+#### Updating a String
+
+A string can grow in size and its contents can change, just like the contents of `Vec<T>`.
+
+You can also use the `+` operator or the `format!` macro to concatenate strings.
+
+##### Appending with `push_str` or `push`
+
+```Rust
+let mut s = String::from("foo");
+s.push_str("bar");
+```
+
+The `push_str` method takes a string slice, as we don't necessarily want to take ownership.
+
+The `push` method takes a singe char
+
+```Rust
+let mut s = String::from("lo");
+s.push('l');
+```
+
+##### Concatenating with `+` or `format!`
+
+```Rust
+let s1 = String::from("Hello, ");
+let s2 = String::from("world!");
+
+let s3 = s1 + &s2;
+```
+
+Note - s1 is moved here and can no longer be used.
+
+```Rust
+let s1 = String::from("tic");
+let s2 = String::from("tac");
+let s3 = String::from("toe");
+
+let s = format!("{s1}-{s2}-{s3}");
+```
+
+`format!` takes references, so no ownership is moved.
+
+#### Indexing into Strings
+
+Don't
+
+##### Internal Representation
+
+A `String` is a wrapper over a `Vec<u8>`. 
+
+```Rust
+let hello = String::from("Hola");
+```
+
+In this case, len will be 4, which means the vector storing this is 4 bytes long. Each of these letters takes 1 bytes when encoded in UTF-8.
+
+```Rust
+ let hello = String::from("Здравствуйте");
+```
+
+When asked how long this string is, you'd probably say 12, however Rust believes it's 24. That's how many bytes it takes to encode `Здравствуйте` in UTF-8.
+
+##### Bytes, Scalar Values, and Grapheme Clusters
+
+There are three ways to look at strings, as bytes, scalar values and as grapheme clusters.
+
+If we look at the Hindi word “नमस्ते” written in the Devanagari script, it is stored as a vector of u8 values that looks like this:
+
+`[224, 164, 168, 224, 164, 174, 224, 164, 184, 224, 165, 141, 224, 164, 164, 224, 165, 135]`
+
+That’s 18 bytes and is how computers ultimately store this data. If we look at them as Unicode scalar values, which are what Rust’s char type is, those bytes look like this:
+
+`['न', 'म', 'स', '्', 'त', 'े']`
+
+There are six char values here, but the fourth and sixth are not letters: They’re diacritics that don’t make sense on their own. Finally, if we look at them as grapheme clusters, we’d get what a person would call the four letters that make up the Hindi word:
+
+`["न", "म", "स्", "ते"]`
+
+#### Slicing Strings
+
+```Rust
+let hello = "Здравствуйте";
+
+let s = &hello[0..4];
+```
+
+Here, `s` will be a `&str` that contains the first 4 bytes of `hello`. Which means that `s` will be `Зд`. (З - 2 byte, д - 2 bytes)
+
+If you try only to slice part of a chars bytes, Rust will panic at runtime. Be careful creating string slices with ranges.
+
+#### Iterating Over Strings
+
+Best way is to specify if you want to iterate over chars or bytes
+
+```Rust
+for c in "Зд".chars() {
+    println!("{c}"); // will print 3 д
+}
+```
+
+```Rust
+for c in "Зд".bytes() {
+    println!("P={c}"); // 208 151 208 180
+}
+```
+
+If you want to get grapheme clusters from strings, you will need to find a crate to do so - it's not offered by the standard lib.
+
+### Hash Maps
+
+The type `HashMap<k, v>` stores a mapping of keys against values.
+
+#### Creating a New Hash Map
+
+One way is to use `new` and then add elements with `insert`.
+
+```Rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+```
+
+Note, we need to `use` the hashmap from the std lib before using it.
+
+Just like vectors, hashmaps store their data on the heap. All keys must have the same type, and all values must have the same type.
+
+#### Accessing Values in a Hash Map
+
+```Rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+
+let team_name = String::from("Blue");
+let score = scores.get(&team_name).copied().unwrap_op(0);
+```
+
+Here `score` will have the value that's associated with the Blue team, and the result will be `10`. 
+
+The `get()` method returns an `Option<&i32>`
+
+You can iterate over each key value pair
+
+```Rust
+for (key, value) in &scores {
+    println!("{key}: {value}");
+}
+```
+
+#### Managing Ownership in Hash Maps
+
+For types that implement the `Copy` trait, like `i32`, the values are copied into the hash map. For owned values like `String`, the values will be moved, and the map will become the owner.
+
+```Rust
+use std::collections::HashMap;
+
+let field_name = String::from("Favorite color");
+let field_value = String::from("Blue");
+
+let mut map = HashMap::new();
+map.insert(field_name, field_value);
+
+// field_name and field_value are invalid at this point.
+```
+
+#### Updating a Hash Map
+
+##### Overwriting a Value
+
+```Rust
+use std:collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Blue"), 25);
+
+println!("{scores:?}"); // {"Blue": 25}
+```
+
+##### Adding a Key and Value Only if a Key isn't Present
+
+```Rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+scores.insert(String::from("Blue"), 10);
+
+scores.entry(String::from("Yellow")).or_insert(50);
+scores.entry(String::from("Blue")).or_insert(50);
+
+println!("{scores:?}"); // {"Yellow": 50, "Blue": 10}
+```
+
+##### Updating a Value Based on the Old Value
+
+```Rust
+use std::collections::HashMap;
+
+let text = "hello world wonderful world";
+
+let mut map = HashMap::new();
+
+for word in text.split_whitespace() {
+    let count = map.entry(word).or_insert(0);
+    *count += 1;
+}
+
+println!("{map:?}"); // {"world": 2, "hello": 1, "wonderful": 1}
+```
