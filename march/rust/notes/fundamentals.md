@@ -1464,3 +1464,242 @@ for word in text.split_whitespace() {
 
 println!("{map:?}"); // {"world": 2, "hello": 1, "wonderful": 1}
 ```
+
+## Errors
+
+### Panic!
+
+This is where my app crashes because I tried to access an element in a vector that doesn't exist. Rust backtraces are pretty useful.
+
+Can intentionally panic! like this:
+
+```Rust
+fn main() {
+    panic!("Crash and Burn!");
+}
+```
+
+### Recoverable Errors
+
+The result enum has two variants:
+
+```Rust
+enum Result<T, E> {
+    Ok(T),
+    Err(E),
+}
+```
+
+```Rust
+use std::io::File;
+
+fn main() {
+    let greeting_file_result = File::open("hello.txt");
+
+    let greeting_file = match greeting_file_result {
+        Ok(file) => file,
+        Err(error) => panic!("Problem opening the file: {error:?}"),
+    }
+}
+```
+
+Sometimes you want to keep the flow going, even when there's an error
+
+```Rust
+use std::fs::File;
+use std::io::ErrorKind;
+
+fn main() {
+    let greeting_file_result = File::open("hello.txt");
+
+    let greeting_file = match greeting_file_result {
+        Ok(file) => file,
+        Err(error) => match error.kind() {
+            ErrorKind::NotFound => match File::create("hello.txt") {
+                Ok(fc) => fc,
+                Err(e) => panic!("Problem creating the file: {e:?}"),
+            },
+            _ => {
+                panic!("Problem opening the file: {error:?}"),
+            }
+        },
+    };
+}
+```
+
+#### Shortcuts for Panic on Error
+
+Calling `unwrap` on a result will either return the ok value, or cause the program to panic.
+
+```Rust
+use std::fs::File;
+
+fn main() {
+    let greeting_file = File::open("hello.txt").unwrap();
+}
+```
+
+Using `expect` instead of `unwrap` and providing good error messages can help to convey my intent
+
+```Rust
+use std::fs::File;
+
+fn main() {
+    let greeting_file = File::open("hello.txt")
+        .expect("hello.txt should be included in this project");
+}
+```
+
+#### Propagating Errors
+
+You can return an error to the calling code, so that it can decide what to do.
+
+```Rust
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let username_file_result = File::open("hello.txt");
+
+    let mut username_file = match username_file_result {
+        Ok(file) => file,
+        Err(error) => return Err(e),
+    };
+
+    let mut username = String::new();
+
+    match username_file.read_to_string(&mut username) {
+        Ok(_) => Ok(username),
+        Err(e) => Err(e),
+    }
+}
+```
+
+#### The ? Shortcut
+
+```Rust
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut username_file = File::open("hello.txt")?;
+    let mut username = String::new();
+    username_file.read_to_string(&mut username)?;
+    Ok(username);
+}
+```
+
+The error type is converted into the error type in the signature of the function. So if something goes wrong, the error returned will be `io::Error`.
+
+By chaining these methods, we can make it even more terse.
+
+```Rust
+use std::fs::File;
+use std::io::{self, Read};
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    let mut username = String::new();
+    File::open("hello.txt")?.read_to_string(&mut username)?;
+
+    Ok(username)
+}
+```
+
+We can make it even more terse by using `fs::read_to_string`
+
+```Rust
+use std::fs;
+use std::io;
+
+fn read_username_from_file() -> Result<String, io::Error> {
+    fs::read_to_string("hello.txt")
+}
+```
+
+#### Where to Use the ? Operator
+
+It can only be used in functions who's return type is compatible with the value the `?` is used on.
+
+```Rust
+use std::fs::File;
+
+fn main() {
+    let greeting_file = File::open("hello.txt")?; // wont work, return type in main is () -> so what can the error return on failure?
+}
+```
+
+We can only use `?` on a function with a return type of `Result`, `Option`, or `FromResidual`
+
+```Rust
+fn last_char_of_first_line(text: &str) -> Option<char> {
+    text.lines().next()?.chars().last()
+}
+```
+
+You can change the return type of `main` so that you can use `?`
+
+```Rust
+use std::error::Error;
+use std::fs::File;
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let greeting_file = File::open("hello.txt")?;
+
+    Ok(())
+}
+```
+
+### To Panic! or Not to Panic!
+
+When there's no way to recover - `panic!`.
+When an error is an expected outcome that we can accommodate for, don't `panic!`.
+
+#### When You Have More Information Than the Compiler
+
+If you know from some logic earlier in your program that there is no way for an error to occur, then it's a good idea to use `expect` and document the reason you'll never have an `Err` variant.
+
+```Rust
+use std::net::IpAddr;
+
+let home: IpAddr = "127.0.0.1"
+    .parse()
+    .expect("hardcoded IP address should be valid");
+```
+
+#### Custom Types for Validation
+
+```Rust
+pub struct Guess {
+    value: i32,
+}
+
+impl Guess {
+    pub fn new(value: i32) -> Guess {
+        if value < 1 || value > 100 {
+            panic!("Guess value must be between 1 and 100, got {value}.");
+        }
+
+        Guess { value }
+    }
+
+    pub fn value(&self) -> i32 {
+        self.value
+    }
+}
+```
+
+## Writing Automated Tests
+
+### How to Write Tests
+
+Tests are Rust functions that verify that non test code is working as expected.
+
+The bodies of these tests typically do 3 things:
+
+- Set up any needed data or state
+- Run the code you want to test
+- Assert that the results are what you expect
+
+#### Structuring Test Functions
+
+A Test in Rust is a function with the `test` attribute
