@@ -1,0 +1,3 @@
+[workspace]
+members = ["march/rust/*"]
+exclude = ["march/rust/notes"]
