@@ -1702,4 +1702,75 @@ The bodies of these tests typically do 3 things:
 
 #### Structuring Test Functions
 
-A Test in Rust is a function with the `test` attribute
+A Test in Rust is a function with the `test` attribute. Attributes are metadata about pieces of Rust code - one example is `derive`.
+
+To turn a function into a test function - write `#[test]` on the line before.
+
+Run the tests with `cargo test`
+
+#### Checking Tests with Assert
+
+The `assert!` macro defined by the standard lib will panic if the condition doesn't equate to `true`.
+
+#### Testing Equality with `assert_eq` and `assert_ne`
+
+`assert_ne!` is useful if you know that some value will change in a function, but not entirely sure exactly to what.
+
+#### Using `Result<T, E>` in Tests
+
+This enables you to use the `?` operator in the body of the test.
+
+### Controlling how Tests are Run
+
+By default `cargo test` will run all the tests in parallel.
+
+#### Running Tests in Parallel or Consecutively
+
+If you don't want to run the tests in parallel, you can run them consecutively by using the command `cargo test -- --test-threads=1`
+
+#### Showing Function Output
+
+If you fail a test with `assert_eq` you will see the values for both left and right hand sides.
+
+If you want to see the values even if you pass, use `cargo test -- --show-output`
+
+#### Running a Subset of Tests by Name
+
+##### Running Single Tests
+
+You can pass the name of any test to `cargo test` to have only that test run.
+
+##### Filtering to Run Multiple Tests
+
+If you have two tests that both have `add` in the functions, you could run `cargo test add` to have both of them run.
+
+#### Ignoring Tests Unless Specifically Requested
+
+```Rust
+#[test]
+#[ignore]
+fn ignore_this_test() {
+    // --snip--
+}
+```
+
+### Test Organization
+
+Unit tests are kept in the files with the functions that they are testing.
+
+Any module with the `#[cfg(test)]` annotation will mean the compiler will ignore it.
+
+#### Integration Tests
+
+Integration tests are held within the Tests directory. Which is held at the top level of the file, along with the Cargo.lock and Cargo.toml
+
+```Rust
+use adder::add_two;
+
+#[test]
+fn it_adds_two() {
+    let result = add_two(2);
+
+    assert_eq!(result, 4);
+}
+```
