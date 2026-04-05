@@ -1774,3 +1774,244 @@ fn it_adds_two() {
     assert_eq!(result, 4);
 }
 ```
+
+## Iterators and Closures
+
+### Closures
+
+#### Inferring and Annotating Closure Types
+
+Closures don't usually require you to annotate the types of the arguments or return values. You can, but it's a bit odd.
+
+```Rust
+let expensive_closure = |num: u32| -> u32 {
+    num * 2
+}
+```
+
+here's a function and a closure that add x + 1.
+
+```Rust
+fn  add_one_v1   (x: u32) -> u32 { x + 1 }
+let add_one_v2 = |x: u32| -> u32 { x + 1 };
+let add_one_v3 = |x|             { x + 1 };
+let add_one_v4 = |x|               x + 1  ;
+```
+
+The compiler will infer a type for a closure, and then won't be able to reassign that dynamically.
+
+```Rust
+let closure = |x| x;
+
+let y = closure(string::from("hi")); // y = "hi"
+let x = closure(1); // compiler error, as closure has been assigned |x: String| -> String { x };
+```
+
+#### Capturing References or Moving Ownership
+
+Closures can capture values in three ways:
+
+- borrowing immutably
+- borrowing mutably
+- taking ownership
+
+```Rust
+fn main() {
+    let list = vec![1, 2, 3];
+    println!("Before defining closure: {list:?}"); // 1, 2, 3
+
+    let only_borrows = || println!("from closure: {list:?}"); // 1, 2, 3
+
+    println!("Before calling closure: {list:?}"); // 1, 2, 3
+    only_borrows();
+    println!("After calling closure: {list:?}"); // 1, 2, 3
+}
+```
+
+```Rust
+fn main() {
+    let mut list = vec![1, 2, 3];
+    println!("Before defining closure: {list:?}"); // 1, 2, 3
+
+    let mut borrows_mutably = || list.push(7);
+
+    borrows_mutably();
+    println!("After calling closure: {list:?}"); 1, 2, 3, 7
+}
+```
+
+When `borrows_mutably` is defined, it captures a mutable reference to `list` - so it wouldn't be possible to println! in between the closure definition and it being called.
+
+If you want to force a closure to take ownership of the values it is passed, you can use the `move` keyword before the param list. This is mostly useful if you're sending the closure to another thread.
+
+```Rust
+fn main() {
+    let mut list = vec![1, 2, 3];
+    println!("before calling closure: {list:?}");
+
+    thread::spawn(move || println!("from thread: {list:?}"))
+        .join()
+        .unwrap();
+}
+```
+
+Here we spawn a new thread and give the thread a closure to run. Even though the closure body only needs an immutable reference to `list` we still need to move ownership to that thread.
+
+#### Moving Captured Values Out of Closures
+
+A closure body can do any of the following:
+
+- Move a captured value out of the closure
+- Mutate the captured value
+- Neither mutate nor move
+- Capture nothing to begin with
+
+Closures will automatically implement 1, 2 or 3 of the following traits additively depending on how they interact with these values:
+
+- `FnOnce` Applies to closures that can be called once - Which applies to all of them. A closure that moves values out of its body will only implement `FnOnce` and none of the others, because that means it can only be called once.
+- `FnMut` Applies to closures that wont move captured values, but might mutate them - these can be called more than once.
+- `Fn` Applies to closures that neither move nor mutate captured values, and also to closures that don't capture anything. These closures can be called more than once without mutating their environment. This is important if you're calling this closure multiple times concurrently.
+
+Let's look at `unwrap_or_else`
+
+```Rust
+impl<T> Option<T> {
+    pub fn unwrap_or_else(self, f: F) -> T
+    where
+        F: FnOnce() -> T
+    {
+        match self {
+            Some(x) => x,
+            None => f(),
+        }
+    }
+}
+```
+
+The trait bound on `F` is `FnOnce() -> T` meaning that `F` must be able to be called once, take no arguments and return a `T`.
+
+```Rust
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+fn main() {
+    let mut list = [
+        Rectangle { width: 10, height: 1 },
+        Rectangle { width: 5, height: 10 },
+        Rectangle { width: 7, height: 4 },
+    ];
+
+    let sort_by_key(|r| r.width);
+    println!("{list:#?}");
+}
+```
+
+The reason `sort_by_key` is defined to take a `FnMut` closure is because the closure will need to be run multiple times to compare each element.
+
+In contrast, if you used a closure that moves an item out of its body, then it wouldn't compile
+
+```Rust
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+fn main() {
+    let mut list = [
+        Rectangle { width: 10, height: 1 },
+        Rectangle { width: 5, height: 10 },
+        Rectangle { width: 7, height: 4 },
+    ];
+
+    let mut sort_operations = vec![];
+    let value = String::from("closure called");
+
+    let sort_by_key(|r| {
+        sort_operations.push(value);
+        r.width
+    });
+    println!("{list:#?}");
+}
+```
+
+This closure can only be called once, as it takes ownership of `value` and shoves it into `sort_operations`, calling it a second time would cause issues, so the compiler won't be happy with this code at all.
+
+### Iterators
+
+#### Processing a Series of Items with Iterators
+
+In Rust, iterators are lazy, meaning they have no effect until you call a method that consumes them.
+
+```Rust
+let v1 = vec![1, 2, 3];
+
+let v1_iter = v1.iter();
+
+for val in v1_iter {
+    println!("Got: {val:?}");
+}
+```
+
+#### The Iterator Trait and the Next Method
+
+As defined in a the standard lib:
+
+```Rust
+pub trait Iterator {
+    type Item;
+
+    fn next(&mut self) -> Option<Self::Item>
+}
+```
+
+This definition uses some new syntax - `type Item` and `Self::Item`, which are defining an associated type with that trait. - TLDR this means that implementing the iterator trait requires you to define an item type and that the item type is used in the return type of the next method.
+
+```Rust
+#[test]
+fn iterator_demo() {
+    let v1 = vec![1, 2, 3];
+
+    let mut v1_iter = v1.iter();
+
+    assert_eq!(v1_iter.next(), Some(&1));
+    assert_eq!(v1_iter.next(), Some(&2));
+    assert_eq!(v1_iter.next(), Some(&3));
+    assert_eq!(v1_iter.next(), None);
+}
+```
+
+Note, we need to make `v1_iter` mutable, as each time we call next() it changes the internal state.
+
+If you want to take an iter that takes ownership of v1 and returns owned values, we can call `into_iter` instead.
+
+If you want to iterate over mutable references instead, we can call `iter_mut`
+
+#### Methods That Consume the Iterator
+
+```Rust
+#[test]
+fn iterator_sum() {
+    let v1 = vec![1, 2, 3];
+    let v1_iter = v1.iter();
+
+    let total: i32 = v1_iter().sum();
+
+    assert_eq(total, 6);
+}
+```
+
+We can't then use v1_iter after the sum as `sum` takes ownership.
+
+#### Methods That Produce Other Iterators
+
+Iterator adapters are defined on the iterator trait that don't consume the iterator. Instead they produce different iterators by changing some aspect of the original.
+
+For example - `map`
+
+#### Closures That Capture Their Environment
+
+Many iterator adapters take closures as arguments. Commonly these closures also capture their environment.
