@@ -2015,3 +2015,688 @@ For example - `map`
 #### Closures That Capture Their Environment
 
 Many iterator adapters take closures as arguments. Commonly these closures also capture their environment.
+
+## Cargo and Crates
+
+### Customizing Builds with Release Profiles
+
+Cargo has default settings for a `--release` vs a `dev` build. In the `Cargo.toml` there is a setting where you can change the optimization level of the build, 0 being no opt, 3 being max.
+By default, the settings will look like this:
+
+```Cargo.toml
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+opt-level = 3
+```
+
+The higher optimization comes at the cost of longer compile times.
+
+### Publishing a Crate to Crates.io
+
+#### Documentation Comments
+
+Documentations comments use `///` rather than the standard `//` and also support markdown formatting.
+
+## Smart Pointers
+
+The most common kind of pointer in Rust is a reference. They don't have any special capabilities other than referring to data, and they have no overhead.
+
+Smart pointers are data structures that act like a pointer but have additional metadata and capabilities.
+
+While references borrow data, smart pointers in many cases own the data they point to.
+
+They implement the `Deref` and `Drop` traits. The `Deref` trait allows a smart pointer to behave like a reference. The `Drop` trait allows you to customize the code that's run when an instance of the smart pointer goes out of scope.
+
+The most common are:
+
+- `Box<T>` - for allocating values on the heap
+- `Rc<T>` - allows multiple ownership
+- `Ref<T>` - enforces borrowing rules at runtime rather than compile time.
+
+### Using `Box<T>` to Point to Data on the Heap
+
+The most straightforward smart pointer is a box. Boxes allow you to store data on the heap rather than the stack. What remains on the stack is a pointer to the heap data.
+
+They are used when:
+
+- You have a type who's size can't be known at compile time.
+- You have a large amount of data, and want to transfer ownership, but don't want it to be copied
+- You want to own a value, and only care that it's a type that implements a particular trait, rather than a specific type.
+
+#### Storing Data on the Heap
+
+This is how you store an `i32` on the heap:
+
+```Rust
+fn main() {
+    let b = Box::new(5);
+    println!("b = {b}");
+}
+```
+
+#### Enabling Recursive Types with Boxes
+
+A value of a recursive type can have another value of the same type as part of itself. This poses an issue as Rust needs to know at compile time how much space it will take up.
+
+However, the nesting of values of recursive types could theoretically continue infinitely - so no dice.
+
+##### Understanding the Cons List
+
+A *cons list* is a data structure that comes from Lisp, and is made up of nested pairs, and is the Lisp version of a linked list.
+
+Here's the pseudocode representation of a cons list containing list `1, 2, 3`.
+
+```Lisp
+(1, (2, (3, Nil)))
+```
+
+```Rust
+enum List {
+    Cons(i32, List), // wont compile
+    Nil,
+}
+```
+
+Using the `List` type to store the list `1, 2, 3` would look like the code below:
+
+```Rust
+use crate::List::{Cons, Nil};
+
+fn main() {
+    let list = Cons(1, Cons(2, Cons(3, Nil))); // wont compile
+}
+```
+
+##### Getting a Recursive Type with a Known Size
+
+Instead of storing the value directly, we should change the data structure to store the value indirectly by storing a pointer instead.
+
+Because `Box<T>` is a pointer, Rust always knows how much space `Box<T>` needs - A pointer's size doesn't change based on how much data it is pointing to.
+
+This means we can put `Box<T>` inside the `Cons` variant, instead of another List value directly. The `Box<T>` will point to the next `List` value that will be on the heap. Conceptually we still have a list of one value containing other lists, but this way is more like placing data next to each other rather than nesting.
+
+```Rust
+enum List {
+    Cons(i32, Box<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+
+fn main() {
+    let list = Cons(1, Box::new(Cons(2, Box::new(Cons(3, Box::new(Nil)))))); 
+}
+```
+
+The `Cons` variant now needs to be able to store the `i32` and a pointer. The compiler knows how big those are, so we're all good.
+
+### Treating Smart Pointers Like Regular References
+
+Implementing the `Deref` trait allows you to customize the behavior of the *dereference operator* `*`.
+
+#### Following the Reference to the Value
+
+Here we create a ref to an `i32` and then use `*` to follow the ref to the value
+
+```Rust
+fn main() {
+    let x = 5;
+    let y = &x;
+
+    assert_eq!(5, x);
+    assert_eq!(5, *y);
+}
+```
+
+if we tried to do `assert_eq!(5, y)` we'd get a compiler error saying it can't compare `{integer} with &{integer}`.
+
+#### Using `Box<T>` Like a Reference
+
+```Rust
+fn main() {
+    let x = 5;
+    let y = Box::new(x);
+
+    assert_eq!(5, 5);
+    assert_eq!(5, *y);
+}
+```
+
+#### Defining Our Own Smart Pointer
+
+Lets hand roll a wrapper similar to `Box<T>` to experience how smart pointers are different from refs. Note - our version will store data on the stack, so not perfectly analogous.
+
+```Rust
+struct MyBox<T>(T);
+
+impl<T> MyBox<T> {
+    fn new(x: T) -> MyBox<T> {
+        MyBox(T)
+    }
+}
+```
+
+```Rust
+fn main() {
+    let x = 5;
+    let y = MyBox::new(x);
+
+    assert_eq!(5, x);
+    assert_eq!(5, *y); // won't compile - we haven't told the compiler how to dereference yet.
+}
+```
+
+#### Implementing the `Deref` Trait
+
+```Rust
+use std::ops::Deref;
+
+impl<T> Deref for MyBox<T> {
+    type Target = T; // defines an associated type for the deref to use.
+
+    fn deref(&self) -> &Self::Target {
+        &self.0 // returns a ref to the value we want to access when using *
+    }
+}
+```
+
+Now the above code would compile.
+
+#### Using Deref Coercion in Functions and Methods
+
+*Deref coercion* converts a ref of one type that implements `Deref` to a ref of another type. For example, this can convert a `&String` to `&str` - this is because `String` implements the `Deref` trait such that it returns a `&str`.
+
+```Rust
+fn hello(name: &str) {
+    println!("Hello, {name}!"); // we can call this with a string slice as an arg like hello("Rust"); we can also call it with a ref to MyBox<String>
+}
+
+fn main() {
+    let m = MyBox::new(String::from("Rust"));
+    hello(&m); // this works due to deref coercion
+}
+```
+
+`&m` is a reference to the `MyBox<String>` value. Because we implemented the deref trait on `MyBox<T>` rust can convert `&MyBox<String>` into `&String` by calling `deref`. The standard lib provides a deref for `String` that returns a slice, and so Rust calls `deref` again and converts it into `&str`, which matches the functions definition.
+
+If Rust didn't do this, we'd have to do this instead:
+
+```Rust
+fn main() {
+    let m = MyBox::new(String::from("Rust"));
+    hello(&(*m)[..]); // *m gives a String, the & then gives a &String, and [..] takes a slice, so you get &str
+}
+```
+
+When the `Deref` trait is defined for the types involved, Rust will use `Deref::deref` as many times as necessary to get a reference to match the parameters type.
+
+#### Handling Deref Coercion with Mutable References
+
+Similar to how you use the `Deref` trait to override the `*` operator on immutable refs, you use the `DerefMut` to override the `*` operator on mutable refs.
+
+Rust does deref coercion when it finds types and trait implementations in 3 cases:
+
+- From `&T` to `&U` when `T: Deref<Target=U>`
+- From `&mut T` to `&mut U` when `T: DerefMut<Target=U>`
+- From `&mut T` to `&U` when `T: Deref<Target=U>`
+
+So you can coerce a mutable ref into an immutable one, but not the other way around.
+
+This is because of the borrowing rules - if you have a mutable ref, that must be the only one to that data, so if you're getting mutable references from deref coercion, you can't keep track of it anymore.
+
+### Running Code on Cleanup with the `Drop` Trait
+
+`Drop` lets you customize what happens when a value is about to go out of scope. For example, when a `Box<T>` is dropped, the space on the heap that it's pointing to is deallocated.
+
+As Rust automatically drops values as they go out of scope, you don't need to be worried about manually dropping values.
+
+The `Drop` trait requires you define a method named `drop` that takes a mutable ref to `self`.
+
+```Rust
+struct CustomSmartPointer {
+    data: String,
+}
+
+impl Drop for CustomSmartPointer {
+    fn drop(&mut self) {
+        println!("Dropping CustomSmartPointer with data `{}`!", self.data);
+    }
+}
+
+fn main() {
+    let c = CustomSmartPointer {
+        data: String::from("my stuff"),
+    };
+
+    let d = CustomSmartPointer {
+        data: String::from("other stuff"),
+    };
+
+    println!("CustomSmartPointers created");
+}
+```
+
+Variables are dropped in reverse order of their creation - so you'd get a print from d before c.
+
+If you want a value dropped before it goes out of scope, you have to use `std::mem::drop`.
+
+```Rust
+use std::mem::drop;
+
+fn main() {
+    let c = CustomSmartPointer {
+        data: String::from("some data"),
+    };
+
+    println!("CustomSmartPointer created");
+    drop(c);
+    println!("CustomSmartPointer dropped before the end of main!");
+}
+```
+
+### `Rc<T>`, the Reference-Counted Smart Pointer
+
+You have to enable multiple ownership in Rust by using the type `Rc<T>`, which is an abbreviation for reference counting. The type keeps track of the number of references to determine if it's still in use. If that reaches 0, then it will be cleaned up.
+
+Imagine it as a tv in a family room, when the first person comes in, it is turned on, and it is only turned off as the last person leaves.
+
+#### Sharing Data
+
+We'll create two lists, `b` and `c` that both share list `a`.
+
+```Rust
+enum List {
+    Cons(i32, Box<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+
+fn main() {
+    let a = Cons(5, Box::new(Cons(10, Box::new(Nil))));
+    let b = Cons(3, Box::new(a));
+    let c = Cons(4, Box::new(a)); // won't compile
+}
+```
+
+```Rust
+enum List {
+    Cons(i32, Rc<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+use std::rc::Rc;
+
+fn main() {
+    let a = Rc::new(Cons, Rc::New(Cons(10, Rc::new(Nil))));
+    let b = Cons(3, Rc::clone(&a));
+    let c = Cons(4, Rc::clone(&a));
+}
+```
+
+The use of `Rc::clone` doesn't create a deep copy of all the data. It only increments the reference count of `a`.
+
+#### Cloning to Increase the Reference Count
+
+```Rust
+// --snip--
+
+fn main() {
+    let a = Rc::new(Cons(5, Rc::new(Cons(10, Rc::new(Nil)))));
+    println!("count after creating a = {}", Rc::strong_count(&a)); // 1
+
+    let b = Cons(3, Rc::clone(&a));
+    println!("count after creating b = {}", Rc::strong_count(&a)); // 2
+
+    {
+        let c = Cons(4, Rc::clone(&a));
+        println!("count after creating c = {}", Rc::strong_count(&a)); // 3
+    }
+    println!("count after c goes out of scope = {}", Rc::strong_count(&a)); // 2
+}
+```
+
+### `RefCell<T>` and the Interior Mutability Pattern
+
+*Interior mutability* is a patttern in Rust, where you can mutate data even when there are immutable references to the data.
+
+The pattern uses `unsafe` code inside a data structure that bends Rust's usual rules.
+
+Unsafe code lets the compiler know that we're doing the checking manually rather than relying on it.
+
+#### Enforcing Borring Rules at Runtime
+
+Unlike `Rc<T>`, `RefCell<T>` represents single ownership over the data it holds.
+
+Because some analysis is impossible, Rust's compiler might reject some code that would be perfectly possible. You can use `RefCell<T>` in these scenarios.
+
+`RefCell<T>` is only used in single threaded scenarios.
+
+#### Using Interior Mutability
+
+```Rust
+fn main() {
+    let x = 5;
+    let y = &mut x; // wont compile x isn't mutable
+}
+```
+
+##### Testing with Mock Objects
+
+```Rust
+pub trait Messenger {
+    fn send(&self, msg: &str);
+}
+
+pub struct LimitTracker<'a, T: Messenger> {
+    messenger: &'a T,
+    value: usize,
+    max: usize,
+}
+
+impl<'a, T> LimitTracker<'a, T>
+where
+    T: Messenger,
+{
+    pub fn new(messenger: &'a T, max: usize) -> LimitTracker<'a, T> {
+        LimitTracker {
+            messenger,
+            value: 0,
+            max,
+        }
+    }
+
+    pub fn set_value(&mut self, value: usize) {
+        self.value = value;
+
+        let percentage_of_max = self.value as f64 / self.max as f64;
+
+        if percentage_of_max >= 1.0 {
+            self.messenger.send("Error: You are over your quota!");
+        } else if percentage_of_max >= 0.9 {
+            self.messenger.send("Urgent warning: You've used up over 90% of your quota!");
+        } else if percentage_of_max >= 0.75 {
+            self.messenger.send("Warning: You've used up over 75% of your quota!");
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    user super::*;
+
+    struct MockMessenger {
+        sent_messages: Vec<String>,
+    }
+
+    impl MockMessenger {
+        fn new() -> MockMessenger {
+            MockMessenger {
+                sent_messages: vec![],
+            }
+        }
+    }
+
+    impl Messenger for MockMessenger {
+        fn send(&self, message: &str) {
+            self.sent_messages.push(String::from(message));
+        }
+    }
+
+    #[test]
+    fn it_sends_an_over_75_percent_warning_message() {
+        let mock_messenger = MockMessenger::new();
+        let mut limit_tracker = LimitTracker::new(&mock_messenger, 100);
+
+        limit_tracker.set_value(80);
+
+        assert_eq!(mock_messenger.sent_messages.len(), 1);
+    }
+}
+```
+
+This won't compile as the mock messenger is not mutable in send, but we're trying to push to the vector it contains.
+
+So we'll use `RefCell<T>` instead
+
+```Rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::RefCell;
+
+    struct MockMessenger {
+        sent_messages: RefCell<Vec<String>>,
+    }
+
+    impl MockMessenger {
+        fn new() -> MockMessenger {
+            MockMessenger {
+                sent_messages: RefCell::new(vec![]),
+            }
+        }
+    }
+
+    impl Messenger for MockMessenger {
+        fn send(&self, message: &str) {
+            self.sent_messages.borrow_mut().push(String::from(message));
+        }
+    }
+
+    #[test]
+    fn it_sends_an_over_75_percent_warning_message() {
+        // --snip--
+
+        assert_eq!(mock_messenger.sent_messages.borrow().len(), 1);
+    }
+}
+```
+
+##### Tracking Borrows at Runtime
+
+```Rust
+impl Messenger for MockMessenger {
+    fn send(&self, message: &str) {
+        let mut one_borrow = self.sent_messages.borrow_mut();
+        let mut two_borrow = self.sent_messages.borrow_mut();
+
+        one_borrow.push(String::from(message));
+        two_borrow.push(String::from(message)); // will compile, but will panic! we have created two mutable references...
+    }
+}
+```
+
+##### Allowing Multiple Owners of Mutable Data
+
+A common way to use `RefCell<T>` is in combination with `Rc<T>`. By combining the two, you get something that can have multiple owners, and can be mutated.
+
+```Rust
+#[derive(Debug)]
+enum List {
+    Cons(Rc<RefCell<i32>>, Rc<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+use std::cell::RefCell;
+use std::cell::Rc;
+
+fn main() {
+    let value = Rc::new(RefCell::new(5));
+
+    let a = Rc::new(Cons(Rc::clone(&value), Rc::new(Nil)));
+
+    let b = Cons(Rc::new(RefCell::new(3)), Rc::clone(&a));
+    let c = Cons(Rc::new(RefCell::new(4)), Rc::clone(&a));
+
+    *value.borrow_mut() += 10;
+
+    println!("a after = {a:?}"); // 15, nil
+    println!("b after = {b:?}"); // 3, 15, nil
+    println!("c after = {c:?}"); // 4, 15, nil
+}
+```
+
+### Reference Cycles Can Leak Memory
+
+Rust's memory safety guarantees make it difficult but not impossible, to accidentally create memory that is never cleaned up.
+
+#### Creating a Reference Cycle
+
+```Rust
+use crate::List::{Cons, Nil};
+use std::cell::RefCell;
+use std::cell::Rc;
+
+#[derive(Debug)]
+enum List {
+    Cons(i32, RefCell<Rc<List>>),
+    Nil,
+}
+
+impl List {
+    fn tail(&self) -> Option<&RefCell<Rc<List>>> {
+        match self {
+            Cons(_, item) => Some(item),
+            Nil => None,
+        }
+    }
+}
+
+fn main() {
+    let a = Rc::new(Cons(5, RefCell::new(Rc::new(Nil))));
+
+    println!("a initial rc count = {}", Rc::strong_count(&a));
+    println!("a next item = {:?}", a.tail());
+
+    let b = Rc::new(Cons(10, RefCell::new(Rc::clone(&a))));
+
+    println!("a rc count after b creation = {}", Rc::strong_count(&a));
+    println!("b initial rc count = {}", Rc::strong_count(&b));
+    println!("b next item = {:?}", b.tail());
+
+    if let Some(link) = a.tail() {
+        *link.borrow_mut() = Rc::clone(&b);
+    }
+
+    println!("b rc count after changing a = {}", Rc::strong_count(&b));
+    println!("a rc count after changing a = {}", Rc::strong_count(&a));
+
+    println!("a next item = {:?}", a.tail()); // will cause a stack overflow
+}
+```
+
+#### Preventing Reference Cycles Using `Weak<T>`
+
+You can create a weak ref by calling `Rc::downgrade` and passing a ref to the `Rc<T>`. Strong refs are how you share ownership, weak refs don't express ownership, and their count is independent to when the var is cleaned up.
+
+If you want to then use the downgraded ref, you need to upgrade it again and check it exists, and the upgrade function returns an option.
+
+##### Creating a Tree Data Structure
+
+To start we'll build a tree with nodes that know about their child nodes.
+
+```Rust
+use std::cell::{RefCell, Rc};
+
+#[derive(Debug)]
+struct Node {
+    value: i32,
+    children: RefCell<Vec<Rc<Node>>>,
+}
+
+fn main() {
+    let leaf = Rc::new(Node {
+        value: 3,
+        children: RefCell::new(vec![]),
+    });
+
+    let branch = Rc::new(Node {
+        value: 5,
+        children: RefCell::new(vec![Rc::clone(&leaf)]),
+    });
+}
+```
+
+##### Adding a Reference from a Child to its Parent
+
+```Rust
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
+
+struct Node {
+    value: i32,
+    parent: RefCell<Weak<Node>>,
+    children: RefCell<Vec<Rc<Node>>>,
+}
+
+fn main() {
+    let leaf = Rc::new(Node {
+        value: 3,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![]),
+    });
+
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade()); // None
+
+    let branch = Rc::new(Node {
+        value: 5,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![Rc::clone(&leaf)]),
+    });
+
+    *leaf.parent.borrow_mut() = Rc::downgrade(&branch);
+
+    println!("leaf parent = {:?}", leaf.parent.borrow().upgrade()); //  Some(...)
+}
+```
+
+##### Visualizing Changes to `strong_count` and `weak_count`
+
+```Rust
+fn main() {
+    let leaf = Rc::new(Node {
+        value: 3,
+        parent: RefCell::new(Weak::new()),
+        children: RefCell::new(vec![]),
+    });
+
+    println!(
+        "leaf strong: {}, weak: {}",
+        Rc::strong_count(&leaf), // 1
+        Rc::weak_count(&leaf), // 0
+    );
+
+    {
+        let branch = Rc::new(Node {
+            value: 5,
+            parent: RefCell::new(Weak::new()),
+            children: RefCell::new(vec![Rc::clone(&leaf)]),
+        });
+
+        *leaf.parent.borrow_mut() = Rc::downgrade(&branch);
+
+        println!(
+            "branch strong: {}, weak: {}",
+            Rc::strong_count(&branch), // 1
+            Rc::weak_count(&branch), // 1
+        );
+
+        println!(
+            "leaf strong: {}, weak: {}",
+            Rc::strong_count(&leaf), // 2
+            Rc::weak_count(&leaf), // 0
+        );
+    }
+
+    println!("leaf parent: {:?}", leaf.parent.borrow().upgrade());
+    println!(
+        "leaf strong: {}, weak: {}",
+        Rc::strong_count(&leaf), // 1
+        Rc::weak_count(&branch), // 0
+    );
+}
+```
